@@ -1,0 +1,238 @@
+/* Custom Styles for CostPlan Dashboard */
+
+:root {
+    --primary-color: #0078d4;
+    --success-color: #107c10;
+    --warning-color: #ffb900;
+    --danger-color: #d13438;
+    --info-color: #00b7c3;
+    --light-bg: #f5f5f5;
+}
+
+body {
+    background-color: var(--light-bg);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+/* Card Hover Effects */
+.card-hover {
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.card-hover:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Icon Boxes */
+.icon-box {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+/* Recommendation Cards */
+.recommendation-card {
+    border-left: 4px solid transparent;
+    transition: all 0.3s;
+    margin-bottom: 1rem;
+    background: white;
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.recommendation-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+}
+
+.recommendation-card.high-impact {
+    border-left-color: var(--danger-color);
+}
+
+.recommendation-card.medium-impact {
+    border-left-color: var(--warning-color);
+}
+
+.recommendation-card.low-impact {
+    border-left-color: var(--info-color);
+}
+
+.recommendation-container {
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.recommendation-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.recommendation-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.recommendation-container::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.recommendation-container::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Badge Styles */
+.impact-badge {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+/* Density Status Badges */
+.density-status {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+/* Chart Container */
+canvas {
+    max-height: 300px;
+}
+
+/* Table Enhancements */
+.table thead th {
+    font-weight: 600;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.table tbody tr {
+    transition: background-color 0.2s;
+}
+
+.table tbody tr:hover {
+    background-color: rgba(0, 120, 212, 0.05);
+}
+
+/* Alert Customization */
+.alert {
+    border-radius: 8px;
+}
+
+.alert-info {
+    background-color: #e1f5fe;
+    color: #01579b;
+}
+
+/* Navbar Enhancement */
+.navbar {
+    padding: 1rem;
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    font-weight: 600;
+}
+
+/* Card Headers */
+.card-header {
+    padding: 1rem 1.25rem;
+}
+
+.card-header h5 {
+    font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .icon-box {
+        width: 50px;
+        height: 50px;
+    }
+    
+    .navbar-brand {
+        font-size: 1.2rem;
+    }
+    
+    h2 {
+        font-size: 1.5rem;
+    }
+}
+
+/* Loading Animation */
+.spinner-border {
+    width: 3rem;
+    height: 3rem;
+}
+
+/* Smooth transitions */
+* {
+    transition: background-color 0.2s ease-in-out;
+}
+
+/* Custom scrollbar for tables */
+.table-responsive::-webkit-scrollbar {
+    height: 8px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 10px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+/* Metric Cards Animation */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card {
+    animation: fadeInUp 0.5s ease-out;
+}
+
+/* Success states */
+.text-success-custom {
+    color: var(--success-color);
+}
+
+.bg-success-custom {
+    background-color: var(--success-color);
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background-color: white;
+    }
+    
+    .navbar,
+    .card-hover,
+    .recommendation-card {
+        box-shadow: none !important;
+    }
+    
+    .card {
+        break-inside: avoid;
+    }
+}

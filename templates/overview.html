@@ -1,0 +1,1676 @@
+{% extends "base.html" %}
+
+{% block title %}Overview - CostPlan{% endblock %}
+
+{% block nav_links %}
+<span class="text-white ms-3">
+    <i class="bi bi-clipboard-data me-2"></i>
+    Environment Overview
+</span>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+        body {
+            background: #f5f5f5;
+        }
+        .orphan-card {
+            transition: all 0.3s ease;
+            border: 2px solid #e0e0e0;
+            background: white;
+            overflow: visible;
+        }
+        .col-md-6, .col-lg-4, .col-xl-3 {
+            overflow: visible;
+        }
+        #orphanedCards {
+            overflow: visible;
+        }
+        .orphan-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.2) !important;
+            border-color: #000;
+        }
+        .orphan-card.has-orphans {
+            border-color: #000;
+            border-width: 2px;
+        }
+        .orphan-card.no-orphans {
+            border-color: #e0e0e0;
+            opacity: 0.85;
+        }
+        .orphan-card .bi {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .count-badge {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #000 !important;
+            background: white !important;
+            border: 2px solid #000;
+            padding: 0.25rem 0.75rem;
+        }
+        .loading-spinner {
+            display: none;
+        }
+        .loading-spinner.active {
+            display: block;
+        }
+        .workflow-step {
+            position: relative;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background: white;
+            border: 2px solid #e0e0e0;
+            margin-bottom: 1rem;
+        }
+        .workflow-step.active {
+            background: white;
+            border: 2px solid #000;
+        }
+        .workflow-step.completed {
+            background: #f8f8f8;
+            border: 2px solid #000;
+        }
+        .workflow-step .step-number {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #000;
+            color: white;
+            font-weight: bold;
+            margin-right: 1rem;
+        }
+        .workflow-step.active .step-number {
+            background: #000;
+            box-shadow: 0 0 0 3px rgba(0,0,0,0.1);
+        }
+        .workflow-step.completed .step-number {
+            background: #000;
+        }
+        .stats-summary {
+            background: #000;
+            color: white;
+            border-radius: 0.5rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.3);
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            display: block;
+        }
+        .stat-number.text-warning {
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-number.text-success {
+            background: linear-gradient(135deg, #00D9FF, #00B8D4);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-number.text-info {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .stat-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .resource-card {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .resource-card {
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        .resource-card.has-orphans:hover {
+            z-index: 1000;
+        }
+        .resource-card.has-orphans:hover .hover-preview {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+        .hover-preview {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: #000;
+            color: white;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            margin-top: 0.5rem;
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-10px);
+            transition: all 0.3s ease;
+            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.3);
+            min-width: 350px;
+        }
+        .hover-preview::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            left: 20px;
+            width: 0;
+            height: 0;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid #000;
+        }
+        .hover-preview-item {
+            font-size: 0.85rem;
+            padding: 0.25rem 0;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .hover-preview-item:last-child {
+            border-bottom: none;
+        }
+        .view-details-btn {
+            width: 100%;
+            margin-top: 0.75rem;
+            border: 2px solid #000;
+            background: white;
+            color: #000;
+            font-weight: 600;
+            padding: 0.5rem;
+            transition: all 0.3s ease;
+        }
+        .view-details-btn:hover {
+            background: #000;
+            color: white;
+        }
+        .resource-item {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            background: white;
+            border-radius: 0.25rem;
+            border-left: 3px solid #000;
+        }
+        .quick-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1rem;
+            justify-content: flex-end;
+        }
+        .quick-actions .btn {
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+            border: 2px solid #000;
+            color: #000;
+            background: white;
+            font-weight: 600;
+        }
+        .quick-actions .btn:hover {
+            background: #000;
+            color: white;
+        }
+        .modal-xl {
+            max-width: 90%;
+        }
+        .modal-header.bg-primary {
+            background: #000 !important;
+        }
+        .table-responsive {
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        .sortable {
+            cursor: pointer;
+            user-select: none;
+        }
+        .sortable:hover {
+            background: #f0f0f0;
+        }
+        .cost-badge {
+            background: #000;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-weight: bold;
+            border: 2px solid #000;
+        }
+        .table-light {
+            background: #f8f8f8 !important;
+        }
+        .badge.bg-secondary {
+            background: #e0e0e0 !important;
+            color: #000 !important;
+            border: 1px solid #ccc;
+        }
+        .view-selector-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 1rem 2rem rgba(0,0,0,.2) !important;
+            border-color: #000 !important;
+        }
+        .view-selector-card .btn:hover {
+            background: #000 !important;
+            color: white !important;
+        }
+        .complete-resource-card {
+            transition: all 0.3s ease;
+            border: 2px solid #e0e0e0;
+            background: white;
+        }
+        .complete-resource-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 0.5rem 1.5rem rgba(0,0,0,.2) !important;
+            border-color: #000;
+        }
+        .complete-resource-card .bi {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+    </style>
+{% endblock %}
+
+{% block content %}
+    <!--
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container my-5">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h2 class="mb-3 text-center">
+                    <i class="bi bi-search text-success me-2"></i>
+                    Azure Orphaned Resources Detection
+                </h2>
+                <p class="text-muted text-center mb-4">
+                    Identify unused Azure resources that may be incurring unnecessary costs
+                </p>
+            </div>
+        </div>
+
+        <!-- Workflow Steps -->
+        <div class="row mb-4">
+            <div class="col-lg-8 offset-lg-2">
+                <!-- Step 1: Download -->
+                <div class="workflow-step" id="step1">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="step-number">1</span>
+                            <div>
+                                <h5 class="mb-0">Fetch Environment Data</h5>
+                                <small class="text-muted">Download resource information from Azure</small>
+                            </div>
+                        </div>
+                        <div>
+                            <button id="downloadEnvironmentBtn" class="btn btn-primary">
+                                <i class="bi bi-download me-2"></i>
+                                Start Scan
+                            </button>
+                            <button id="manageScanBtn" class="btn btn-outline-secondary ms-2" data-bs-toggle="modal" data-bs-target="#scanManagementModal">
+                                <i class="bi bi-folder2-open me-2"></i>
+                                Manage Scans
+                            </button>
+                        </div>
+                    </div>
+                    <div class="loading-spinner mt-3 text-center" id="loadingSpinner">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted mb-0" id="loadingMessage">Scanning your Azure environment...</p>
+                    </div>
+                </div>
+
+                <!-- Step 2: Analyze -->
+                <div class="workflow-step" id="step2">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <div class="d-flex align-items-center">
+                            <span class="step-number">2</span>
+                            <div>
+                                <h5 class="mb-0">Analyze Resources</h5>
+                                <small class="text-muted">Detect orphaned and unused resources</small>
+                            </div>
+                        </div>
+                        <button id="loadEnvironmentBtn" class="btn btn-success" disabled>
+                            <i class="bi bi-cpu me-2"></i>
+                            Analyze
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resource Details Modal -->
+        <div class="modal fade" id="resourceModal" tabindex="-1">
+            <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title" id="resourceModalLabel">Resource Details</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body" id="resourceModalBody">
+                        <!-- Content will be dynamically inserted -->
+                    </div>
+                    <div class="modal-footer" id="resourceModalFooter">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Modal -->
+        <div class="modal fade" id="progressModal" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header border-0">
+                        <h5 class="modal-title">
+                            <i class="bi bi-cloud-download me-2 text-primary"></i>
+                            Scanning Azure Environment
+                        </h5>
+                    </div>
+                    <div class="modal-body">
+                        <div class="progress mb-3" style="height: 25px;">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated" 
+                                 id="progressBar" 
+                                 role="progressbar" 
+                                 style="width: 0%">
+                                <span id="progressPercent">0%</span>
+                            </div>
+                        </div>
+                        <div id="progressLog" style="max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 0.85rem;">
+                            <div class="text-muted">
+                                <i class="bi bi-hourglass-split me-2"></i>
+                                Initializing scan...
+                            </div>
+                        </div>
+                        <div class="mt-3 text-center text-muted">
+                            <small id="progressStatus">Connecting to Azure...</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer border-0" id="progressModalFooter" style="display: none;">
+                        <button type="button" class="btn btn-primary" id="progressModalOkBtn">
+                            <i class="bi bi-check-circle me-2"></i>OK
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scan Management Modal -->
+        <div class="modal fade" id="scanManagementModal" tabindex="-1">
+            <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title">
+                            <i class="bi bi-folder2-open me-2"></i>
+                            Manage Scan Files
+                        </h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Loading state -->
+                        <div id="scanListLoading" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading scan files...</p>
+                        </div>
+
+                        <!-- Scan files list -->
+                        <div id="scanFilesList" style="display: none;">
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-3 bg-light rounded">
+                                <div>
+                                    <h6 class="mb-0">Available Scans</h6>
+                                    <small class="text-muted" id="scanFilesInfo">-</small>
+                                </div>
+                                <button class="btn btn-danger btn-sm" id="deleteAllScansBtn">
+                                    <i class="bi bi-trash3 me-1"></i>
+                                    Delete All
+                                </button>
+                            </div>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>Scan Date</th>
+                                            <th>Resources</th>
+                                            <th>File Size</th>
+                                            <th class="text-center">Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="scanFilesTableBody">
+                                        <!-- Rows will be inserted here -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Empty state -->
+                        <div id="scanFilesEmpty" class="text-center py-5" style="display: none;">
+                            <i class="bi bi-inbox fs-1 text-muted"></i>
+                            <p class="text-muted mt-3 mb-1">No scan files found</p>
+                            <small class="text-muted">Run your first Azure scan to see it here</small>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-primary" onclick="loadScanFiles()">
+                            <i class="bi bi-arrow-clockwise me-1"></i>
+                            Refresh
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Alert -->
+        <div class="row mb-4" id="errorAlert" style="display:none;">
+            <div class="col-12">
+                <div class="alert alert-danger" role="alert">
+                    <i class="bi bi-exclamation-triangle me-2"></i>
+                    <span id="errorMessage"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary Statistics -->
+        <div id="summaryStats" style="display:none;">
+            <div class="stats-summary shadow-lg">
+                <div class="row">
+                    <div class="col-md-3 stat-item">
+                        <span class="stat-number text-warning" id="totalOrphansCount">0</span>
+                        <span class="stat-label">Orphaned Resources</span>
+                    </div>
+                    <div class="col-md-2 stat-item border-start border-white border-opacity-25">
+                        <span class="stat-number" id="resourceTypesCount">0</span>
+                        <span class="stat-label">Types Affected</span>
+                    </div>
+                    <div class="col-md-2 stat-item border-start border-white border-opacity-25">
+                        <span class="stat-number text-success" id="cleanResourcesCount">0</span>
+                        <span class="stat-label">Clean Resources</span>
+                    </div>
+                    <div class="col-md-2 stat-item border-start border-white border-opacity-25">
+                        <span class="stat-number" id="totalScannedCount">0</span>
+                        <span class="stat-label">Total Scanned</span>
+                    </div>
+                    <div class="col-md-3 stat-item border-start border-white border-opacity-25">
+                        <span class="stat-number text-warning" id="orphanedPercentage">0%</span>
+                        <span class="stat-label">Orphaned Rate</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- View Selection Cards -->
+        <div id="viewSelectionContainer" style="display:none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h4 class="text-center mb-4">
+                        <i class="bi bi-eye text-primary me-2"></i>
+                        Choose Your View
+                    </h4>
+                </div>
+            </div>
+            <div class="row g-4 mb-5">
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm view-selector-card" onclick="showView('complete')" style="cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                        <div class="card-body text-center p-5">
+                            <i class="bi bi-grid-3x3 mb-4" style="font-size: 5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                            <h3 class="card-title mb-3">Complete View</h3>
+                            <p class="card-text text-muted mb-4">
+                                See all Azure resources across all types with comprehensive inventory counts.
+                            </p>
+                            <div class="d-flex justify-content-center gap-3 mb-3">
+                                <span class="badge" style="background: #000; color: white; padding: 0.5rem 1rem;" id="completeTotalBadge">0 Resources</span>
+                                <span class="badge" style="background: #000; color: white; padding: 0.5rem 1rem;" id="completeTypesBadge">0 Types</span>
+                            </div>
+                            <button class="btn btn-lg" style="border: 2px solid #000; background: white; color: #000; font-weight: 600;">
+                                <i class="bi bi-arrow-right-circle me-2"></i>
+                                View All Resources
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card h-100 shadow-sm view-selector-card" onclick="showView('orphans')" style="cursor: pointer; border: 2px solid #e0e0e0; transition: all 0.3s;">
+                        <div class="card-body text-center p-5">
+                            <i class="bi bi-exclamation-triangle mb-4" style="font-size: 5rem; background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;"></i>
+                            <h3 class="card-title mb-3">Orphans View</h3>
+                            <p class="card-text text-muted mb-4">
+                                Focus on orphaned and unused resources that may be generating unnecessary costs.
+                            </p>
+                            <div class="d-flex justify-content-center gap-3 mb-3">
+                                <span class="badge" style="background: #000; color: white; padding: 0.5rem 1rem;" id="orphansTotalBadge">0 Orphaned</span>
+                                <span class="badge" style="background: #000; color: white; padding: 0.5rem 1rem;" id="orphansSavingsBadge">$0 Savings</span>
+                            </div>
+                            <button class="btn btn-lg" style="border: 2px solid #000; background: white; color: #000; font-weight: 600;">
+                                <i class="bi bi-arrow-right-circle me-2"></i>
+                                View Orphaned Only
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Complete Resources View -->
+        <div id="completeResourcesContainer" style="display:none;">
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4>
+                            <i class="bi bi-grid-3x3 text-primary me-2"></i>
+                            Complete Resources View
+                        </h4>
+                        <p class="text-muted mb-0">All Azure resources across all types</p>
+                    </div>
+                    <button class="btn btn-outline-secondary" onclick="backToViewSelection()">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Back to View Selection
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-3" id="completeCards">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+        </div>
+
+        <!-- Orphaned Resources View -->
+        <div id="orphanedResourcesContainer" style="display:none;">
+            <div class="row mb-3">
+                <div class="col-12 d-flex justify-content-between align-items-center">
+                    <div>
+                        <h4>
+                            <i class="bi bi-exclamation-triangle text-warning me-2"></i>
+                            Orphaned Resources View
+                        </h4>
+                        <p class="text-muted mb-0">Unused resources detected in your environment</p>
+                    </div>
+                    <button class="btn btn-outline-secondary" onclick="backToViewSelection()">
+                        <i class="bi bi-arrow-left me-2"></i>
+                        Back to View Selection
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-3" id="orphanedCards">
+                <!-- Cards will be dynamically inserted here -->
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+        // Auto-load latest scan on page load
+        window.addEventListener('DOMContentLoaded', async () => {
+            // Initialize Bootstrap tooltips
+            const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            await loadLatestScan();
+        });
+
+        // Scan Management Functions
+        async function loadScanFiles() {
+            const loadingDiv = document.getElementById('scanListLoading');
+            const listDiv = document.getElementById('scanFilesList');
+            const emptyDiv = document.getElementById('scanFilesEmpty');
+            const tableBody = document.getElementById('scanFilesTableBody');
+            const infoText = document.getElementById('scanFilesInfo');
+            
+            // Show loading
+            loadingDiv.style.display = 'block';
+            listDiv.style.display = 'none';
+            emptyDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/scan-files');
+                const data = await response.json();
+                
+                loadingDiv.style.display = 'none';
+                
+                if (data.files && data.files.length > 0) {
+                    // Show list
+                    listDiv.style.display = 'block';
+                    infoText.textContent = `${data.total_count} scan${data.total_count !== 1 ? 's' : ''} • ${data.total_size_mb.toFixed(2)} MB total`;
+                    
+                    // Clear and populate table
+                    tableBody.innerHTML = '';
+                    data.files.forEach(file => {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td>
+                                <div>${formatScanDate(file.scan_date)}</div>
+                                <small class="text-muted">${file.filename}</small>
+                            </td>
+                            <td>
+                                <span class="badge bg-info">${file.resource_count} resources</span>
+                            </td>
+                            <td>${file.size_mb.toFixed(2)} MB</td>
+                            <td class="text-center">
+                                <button class="btn btn-danger btn-sm" onclick="deleteScan('${file.filename}')">
+                                    <i class="bi bi-trash3"></i>
+                                </button>
+                            </td>
+                        `;
+                        tableBody.appendChild(row);
+                    });
+                } else {
+                    // Show empty state
+                    emptyDiv.style.display = 'block';
+                }
+            } catch (error) {
+                console.error('Error loading scan files:', error);
+                loadingDiv.style.display = 'none';
+                emptyDiv.style.display = 'block';
+            }
+        }
+
+        async function deleteScan(filename) {
+            if (!confirm(`Are you sure you want to delete this scan?\n\n${filename}`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/delete-scan/${filename}`, {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Refresh the list
+                    await loadScanFiles();
+                    
+                    // Show success message
+                    showToast('success', data.message || 'Scan deleted successfully');
+                } else {
+                    showToast('error', data.error || 'Failed to delete scan');
+                }
+            } catch (error) {
+                console.error('Error deleting scan:', error);
+                showToast('error', 'Failed to delete scan');
+            }
+        }
+
+        async function deleteAllScans() {
+            const confirmMsg = 'Are you sure you want to delete ALL scan files?\n\nThis action cannot be undone!';
+            if (!confirm(confirmMsg)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/delete-all-scans', {
+                    method: 'DELETE'
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    // Refresh the list
+                    await loadScanFiles();
+                    
+                    // Show success message
+                    showToast('success', `${data.deleted_count} scan(s) deleted successfully`);
+                } else {
+                    showToast('error', data.error || 'Failed to delete scans');
+                }
+            } catch (error) {
+                console.error('Error deleting scans:', error);
+                showToast('error', 'Failed to delete scans');
+            }
+        }
+
+        function formatScanDate(dateStr) {
+            if (!dateStr) return 'Unknown date';
+            const date = new Date(dateStr);
+            return date.toLocaleString('en-US', {
+                year: 'numeric',
+                month: 'short',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        function showToast(type, message) {
+            // Simple toast notification (you can enhance this)
+            const toast = document.createElement('div');
+            toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed top-0 start-50 translate-middle-x mt-3`;
+            toast.style.zIndex = '9999';
+            toast.innerHTML = `
+                <i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+                ${message}
+            `;
+            document.body.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 3000);
+        }
+
+        // Load scan files when modal opens
+        document.getElementById('scanManagementModal')?.addEventListener('shown.bs.modal', function() {
+            loadScanFiles();
+        });
+
+        // Wire up delete all button
+        document.getElementById('deleteAllScansBtn')?.addEventListener('click', function() {
+            deleteAllScans();
+        });
+
+        async function loadLatestScan() {
+            const analyzeBtn = document.getElementById('loadEnvironmentBtn');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            
+            try {
+                // Try to load the latest scan
+                const response = await fetch('/api/orphaned-resources');
+                const data = await response.json();
+                
+                if (data.error) {
+                    // No existing scan found - user needs to scan first
+                    return;
+                }
+                
+                // Mark step 1 as completed (data already exists)
+                step1.classList.add('completed');
+                const step1Content = step1.querySelector('small');
+                step1Content.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i> Using cached scan data`;
+                
+                // Enable analyze button
+                step2.classList.add('active');
+                analyzeBtn.disabled = false;
+                
+                // Auto-trigger analysis with existing data
+                setTimeout(() => {
+                    loadAndDisplayResults(data);
+                }, 500);
+                
+            } catch (error) {
+                // If error, just leave the page in initial state
+                console.log('No cached scan found, user needs to scan first');
+            }
+        }
+
+        const resourceConfig = {
+            'app_service_plans': {
+                icon: 'bi-diagram-3',
+                label: 'App Service Plans',
+                description: 'Plans without any apps'
+            },
+            'availability_sets': {
+                icon: 'bi-server',
+                label: 'Availability Sets',
+                description: 'Sets without VMs'
+            },
+            'disks': {
+                icon: 'bi-device-hdd',
+                label: 'Disks',
+                description: 'Unattached disks'
+            },
+            'sql_elastic_pools': {
+                icon: 'bi-database',
+                label: 'SQL Elastic Pools',
+                description: 'Pools without databases'
+            },
+            'public_ips': {
+                icon: 'bi-globe',
+                label: 'Public IP Addresses',
+                description: 'Unassociated IPs'
+            },
+            'network_interfaces': {
+                icon: 'bi-ethernet',
+                label: 'Network Interfaces',
+                description: 'Not attached to VMs'
+            },
+            'network_security_groups': {
+                icon: 'bi-shield-lock',
+                label: 'Network Security Groups',
+                description: 'Not associated with resources'
+            },
+            'route_tables': {
+                icon: 'bi-signpost',
+                label: 'Route Tables',
+                description: 'Not associated with subnets'
+            },
+            'load_balancers': {
+                icon: 'bi-distribute-vertical',
+                label: 'Load Balancers',
+                description: 'No backend pools or rules'
+            },
+            'frontdoor_waf_policies': {
+                icon: 'bi-shield-check',
+                label: 'Front Door WAF Policies',
+                description: 'Not associated with Front Doors'
+            },
+            'traffic_manager_profiles': {
+                icon: 'bi-map',
+                label: 'Traffic Manager Profiles',
+                description: 'No endpoints configured'
+            },
+            'application_gateways': {
+                icon: 'bi-router',
+                label: 'Application Gateways',
+                description: 'No backend pools'
+            },
+            'virtual_networks': {
+                icon: 'bi-diagram-3-fill',
+                label: 'Virtual Networks',
+                description: 'No resources deployed'
+            },
+            'subnets': {
+                icon: 'bi-grid-3x3',
+                label: 'Subnets',
+                description: 'Empty subnets'
+            },
+            'nat_gateways': {
+                icon: 'bi-box-arrow-up-right',
+                label: 'NAT Gateways',
+                description: 'Not associated with subnets'
+            },
+            'ip_groups': {
+                icon: 'bi-collection',
+                label: 'IP Groups',
+                description: 'Not referenced by firewalls'
+            },
+            'private_dns_zones': {
+                icon: 'bi-dns',
+                label: 'Private DNS Zones',
+                description: 'No records or links'
+            },
+            'private_endpoints': {
+                icon: 'bi-link-45deg',
+                label: 'Private Endpoints',
+                description: 'Unused endpoints'
+            },
+            'virtual_network_gateways': {
+                icon: 'bi-door-open',
+                label: 'VPN Gateways',
+                description: 'Not connected'
+            },
+            'ddos_protection_plans': {
+                icon: 'bi-shield-fill-check',
+                label: 'DDoS Protection Plans',
+                description: 'Not associated with VNets'
+            },
+            'resource_groups': {
+                icon: 'bi-folder',
+                label: 'Resource Groups',
+                description: 'Empty resource groups'
+            },
+            'api_connections': {
+                icon: 'bi-plug',
+                label: 'API Connections',
+                description: 'Not used by Logic Apps'
+            },
+            'certificates': {
+                icon: 'bi-file-lock',
+                label: 'Certificates',
+                description: 'Not used by App Services'
+            }
+        };
+
+        // Resource types in order of scanning
+        const scanSteps = [
+            'Disks', 'Public IPs', 'Network Interfaces', 'NSGs', 'Route Tables', 
+            'Load Balancers', 'Front Door WAF Policies', 'Traffic Manager Profiles',
+            'Application Gateways', 'Virtual Networks', 'IP Groups', 'Private DNS Zones',
+            'Private Endpoints', 'Virtual Network Gateways', 'DDoS Protection Plans',
+            'API Connections', 'Certificates', 'Availability Sets', 'NAT Gateways',
+            'App Service Plans', 'SQL Servers', 'Resource Groups'
+        ];
+
+        function showProgressModal() {
+            const modal = new bootstrap.Modal(document.getElementById('progressModal'));
+            modal.show();
+            return modal;
+        }
+
+        function updateProgress(percent, step, totalSteps) {
+            const progressBar = document.getElementById('progressBar');
+            const progressPercent = document.getElementById('progressPercent');
+            const progressStatus = document.getElementById('progressStatus');
+            
+            progressBar.style.width = percent + '%';
+            progressPercent.textContent = Math.round(percent) + '%';
+            progressStatus.textContent = `Scanning ${step} of ${totalSteps} resource types...`;
+        }
+
+        function addProgressLog(message, icon = 'bi-check-circle', color = 'success') {
+            const progressLog = document.getElementById('progressLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `text-${color} mb-1`;
+            logEntry.innerHTML = `<i class="bi ${icon} me-2"></i>${message}`;
+            progressLog.appendChild(logEntry);
+            progressLog.scrollTop = progressLog.scrollHeight;
+        }
+
+        document.getElementById('downloadEnvironmentBtn').addEventListener('click', async () => {
+            const downloadBtn = document.getElementById('downloadEnvironmentBtn');
+            const analyzeBtn = document.getElementById('loadEnvironmentBtn');
+            const errorAlert = document.getElementById('errorAlert');
+            const step1 = document.getElementById('step1');
+            const step2 = document.getElementById('step2');
+            
+            // Show progress modal
+            const modal = showProgressModal();
+            const progressLog = document.getElementById('progressLog');
+            
+            if (window.isDemoMode) {
+                progressLog.innerHTML = '<div class="text-warning"><i class="bi bi-info-circle me-2"></i>Demo Mode: Generating fake data...</div>';
+            } else {
+                progressLog.innerHTML = '<div class="text-muted"><i class="bi bi-hourglass-split me-2"></i>Initializing scan...</div>';
+            }
+            
+            // Show loading state
+            downloadBtn.disabled = true;
+            errorAlert.style.display = 'none';
+            step1.classList.add('active');
+            
+            // Start the API call
+            const startTime = Date.now();
+            let currentStep = 0;
+            let progressInterval;
+            
+            // Function to estimate progress based on time
+            const startProgressSimulation = () => {
+                // Demo mode is faster
+                const scanDuration = window.isDemoMode ? 5000 : 120000;
+                
+                progressInterval = setInterval(() => {
+                    const elapsed = Date.now() - startTime;
+                    const estimatedStep = Math.min(
+                        Math.floor((elapsed / scanDuration) * scanSteps.length),
+                        scanSteps.length - 1
+                    );
+                    
+                    // Only add new logs when we move to a new step
+                    if (estimatedStep > currentStep && currentStep < scanSteps.length) {
+                        const percent = (currentStep / scanSteps.length) * 100;
+                        updateProgress(percent, currentStep + 1, scanSteps.length);
+                        const action = window.isDemoMode ? 'Generating' : 'Fetching';
+                        addProgressLog(`${action} ${scanSteps[currentStep]}...`, 'bi-arrow-right-circle', 'primary');
+                        currentStep++;
+                    }
+                }, window.isDemoMode ? 200 : 2000);
+            };
+            
+            startProgressSimulation();
+            
+            try {
+                const apiUrl = `/api/download-environment?demo=${window.isDemoMode}`;
+                const response = await fetch(apiUrl);
+                const data = await response.json();
+                
+                clearInterval(progressInterval);
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Complete any remaining steps quickly
+                while (currentStep < scanSteps.length) {
+                    const percent = (currentStep / scanSteps.length) * 100;
+                    updateProgress(percent, currentStep + 1, scanSteps.length);
+                    addProgressLog(`Fetching ${scanSteps[currentStep]}...`, 'bi-check-circle', 'success');
+                    currentStep++;
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Small delay for visual effect
+                }
+                
+                // Complete progress
+                updateProgress(100, scanSteps.length, scanSteps.length);
+                addProgressLog(`✓ Download complete! Found ${data.resource_count} resources`, 'bi-check-circle-fill', 'success');
+                
+                // Mark step 1 as completed
+                step1.classList.remove('active');
+                step1.classList.add('completed');
+                
+                // Update step 1 to show success
+                const step1Content = step1.querySelector('small');
+                step1Content.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i> Downloaded ${data.resource_count} resources`;
+                
+                // Activate step 2
+                step2.classList.add('active');
+                analyzeBtn.disabled = false;
+                
+                // Show completion message and OK button
+                document.getElementById('progressStatus').innerHTML = '<strong class="text-success"><i class="bi bi-check-circle-fill me-2"></i>Scan Complete!</strong>';
+                document.getElementById('progressModalFooter').style.display = 'block';
+                
+                // Setup OK button handler
+                document.getElementById('progressModalOkBtn').onclick = () => {
+                    modal.hide();
+                    // Auto-trigger analysis after modal closes
+                    setTimeout(() => {
+                        analyzeBtn.click();
+                    }, 300);
+                };
+                
+            } catch (error) {
+                clearInterval(progressInterval);
+                errorAlert.style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+                step1.classList.remove('active');
+                addProgressLog(`✗ Error: ${error.message}`, 'bi-x-circle-fill', 'danger');
+                
+                setTimeout(() => {
+                    modal.hide();
+                }, 2000);
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        });
+
+        // View switching functions
+        function showView(viewType) {
+            const viewSelection = document.getElementById('viewSelectionContainer');
+            const completeView = document.getElementById('completeResourcesContainer');
+            const orphansView = document.getElementById('orphanedResourcesContainer');
+            
+            viewSelection.style.display = 'none';
+            
+            if (viewType === 'complete') {
+                completeView.style.display = 'block';
+                orphansView.style.display = 'none';
+                loadCompleteView();
+            } else {
+                completeView.style.display = 'none';
+                orphansView.style.display = 'block';
+            }
+        }
+
+        function backToViewSelection() {
+            const viewSelection = document.getElementById('viewSelectionContainer');
+            const completeView = document.getElementById('completeResourcesContainer');
+            const orphansView = document.getElementById('orphanedResourcesContainer');
+            
+            viewSelection.style.display = 'block';
+            completeView.style.display = 'none';
+            orphansView.style.display = 'none';
+        }
+
+        // Map resource config keys to route names
+        function getRouteForResource(key) {
+            const routeMapping = {
+                'app_service_plans': 'app-service',
+                'availability_sets': 'availability-sets',
+                'disks': 'disks',
+                'sql_elastic_pools': 'sql-databases',
+                'public_ips': 'public-ips',
+                'network_interfaces': 'nics',
+                'network_security_groups': 'nsgs',
+                'route_tables': 'route-tables',
+                'load_balancers': 'load-balancers',
+                'frontdoor_waf_policies': 'frontdoor-waf',
+                'traffic_manager_profiles': 'traffic-manager',
+                'application_gateways': 'application-gateways',
+                'virtual_networks': 'virtual-networks',
+                'subnets': 'subnets',
+                'nat_gateways': 'nat-gateways',
+                'ip_groups': 'ip-groups',
+                'private_dns_zones': 'private-dns',
+                'private_endpoints': 'private-endpoints',
+                'virtual_network_gateways': 'vnet-gateways',
+                'ddos_protection_plans': 'ddos-plans',
+                'storage_accounts': 'storage-accounts',
+                'certificates': 'certificates'
+            };
+            return routeMapping[key] || key;
+        }
+
+        async function loadCompleteView() {
+            const cardsContainer = document.getElementById('completeCards');
+            cardsContainer.innerHTML = '<div class="col-12 text-center"><div class="spinner-border" role="status"></div><p class="mt-2 text-muted">Loading complete resource data...</p></div>';
+            
+            try {
+                const response = await fetch('/api/complete-resources');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                cardsContainer.innerHTML = '';
+                
+                Object.entries(resourceConfig).forEach(([key, config]) => {
+                    const resourceData = data[key] || { total: 0 };
+                    const total = resourceData.total || 0;
+                    const routeName = getRouteForResource(key);
+                    
+                    const card = document.createElement('div');
+                    card.className = 'col-md-6 col-lg-4 col-xl-3';
+                    card.innerHTML = `
+                        <div class="card complete-resource-card border-0 shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="d-flex align-items-center mb-3">
+                                    <i class="bi ${config.icon} fs-3 me-2"></i>
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">${config.label}</h6>
+                                        <small class="text-muted">${config.description}</small>
+                                    </div>
+                                </div>
+                                <div class="text-center my-4">
+                                    <div class="display-4 fw-bold text-primary">${total}</div>
+                                    <small class="text-muted">Total Resources</small>
+                                </div>
+                                ${total > 0 ? `
+                                <button class="btn view-details-btn" onclick="window.location.href='/analyze/${routeName}'">
+                                    <i class="bi bi-bar-chart me-2"></i>View Dashboard
+                                </button>
+                                ` : '<p class="text-muted text-center mb-0 small">No resources found</p>'}
+                            </div>
+                        </div>
+                    `;
+                    cardsContainer.appendChild(card);
+                });
+                
+            } catch (error) {
+                console.error('Error loading complete view:', error);
+                cardsContainer.innerHTML = '<div class="col-12"><div class="alert alert-danger">Error loading complete resource data</div></div>';
+            }
+        }
+
+        async function loadAndDisplayResults(data) {
+            const step2 = document.getElementById('step2');
+            const summaryStats = document.getElementById('summaryStats');
+            const viewSelectionContainer = document.getElementById('viewSelectionContainer');
+            const orphanedCardsContainer = document.getElementById('orphanedCards');
+            
+            // Clear previous cards
+            orphanedCardsContainer.innerHTML = '';
+            
+            // Load detailed data for cost estimation and previews
+            try {
+                const detailsResponse = await fetch('/api/orphaned-resources/details');
+                detailedResourceData = await detailsResponse.json();
+                console.log('Detailed resource data loaded:', detailedResourceData);
+            } catch (error) {
+                console.error('Error loading detailed data:', error);
+                detailedResourceData = {};
+            }
+            
+            // Create cards for each resource type
+            let totalOrphans = 0;
+            let typesWithOrphans = 0;
+            let cleanResources = 0;
+            let totalScanned = 0;
+            
+            Object.entries(resourceConfig).forEach(([key, config]) => {
+                const count = data[key] || 0;
+                totalOrphans += count;
+                totalScanned++;
+                if (count > 0) {
+                    typesWithOrphans++;
+                } else {
+                    cleanResources++;
+                }
+                
+                const hasOrphans = count > 0;
+                const cardClass = hasOrphans ? 'has-orphans' : 'no-orphans';
+                const badgeClass = 'count-badge';
+                
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-lg-4 col-xl-3';
+                card.innerHTML = `
+                    <div class="card orphan-card resource-card ${cardClass} border-0 shadow-sm h-100" data-resource-type="${key}">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="bi ${config.icon} fs-3 me-2 text-primary"></i>
+                                <div>
+                                    <h6 class="mb-0">${config.label}</h6>
+                                    <small class="text-muted">${config.description}</small>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span class="badge ${badgeClass} count-badge">${count}</span>
+                            </div>
+                            ${hasOrphans ? `
+                            <button class="btn view-details-btn" onclick="showResourceModal('${key}')">
+                                <i class="bi bi-eye me-2"></i>View Details
+                            </button>
+                            <div class="hover-preview" id="preview-${key}">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <small><i class="bi bi-hourglass-split"></i> Loading preview...</small>
+                                </div>
+                            </div>
+                            ` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                orphanedCardsContainer.appendChild(card);
+                
+                // Load hover preview data for cards with orphans
+                if (hasOrphans) {
+                    setTimeout(() => loadHoverPreview(key), 100);
+                }
+            });
+            
+            // Calculate total resources across all types
+            let totalResources = 0;
+            Object.keys(resourceConfig).forEach(key => {
+                if (detailedResourceData && detailedResourceData[key]) {
+                    totalResources += (detailedResourceData[key].count || 0) + (data[key] || 0);
+                }
+            });
+            
+            // Update summary statistics
+            document.getElementById('totalOrphansCount').textContent = totalOrphans;
+            document.getElementById('resourceTypesCount').textContent = typesWithOrphans;
+            document.getElementById('cleanResourcesCount').textContent = cleanResources;
+            document.getElementById('totalScannedCount').textContent = totalResources;
+            
+            // Calculate orphaned percentage
+            const orphanedPercentage = totalResources > 0 ? Math.round((totalOrphans / totalResources) * 100) : 0;
+            document.getElementById('orphanedPercentage').textContent = orphanedPercentage + '%';
+            
+            document.getElementById('completeTotalBadge').textContent = `${totalResources} Resources`;
+            document.getElementById('completeTypesBadge').textContent = `${totalScanned} Types`;
+            document.getElementById('orphansTotalBadge').textContent = `${totalOrphans} Orphaned`;
+            document.getElementById('orphansSavingsBadge').textContent = 'Requires Cost API';
+            
+            // Mark step 2 as completed
+            step2.classList.remove('active');
+            step2.classList.add('completed');
+            const step2Content = step2.querySelector('small');
+            step2Content.innerHTML = `<i class="bi bi-check-circle text-success me-1"></i> Analysis complete`;
+            
+            // Show summary and view selection
+            summaryStats.style.display = 'block';
+            viewSelectionContainer.style.display = 'block';
+            
+            // Scroll to results
+            setTimeout(() => {
+                summaryStats.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }, 300);
+        }
+
+        document.getElementById('loadEnvironmentBtn').addEventListener('click', async () => {
+            const btn = document.getElementById('loadEnvironmentBtn');
+            const spinner = document.getElementById('loadingSpinner');
+            const loadingMessage = document.getElementById('loadingMessage');
+            const errorAlert = document.getElementById('errorAlert');
+            const step2 = document.getElementById('step2');
+            
+            // Show loading state
+            btn.disabled = true;
+            spinner.style.display = 'block';
+            loadingMessage.textContent = 'Analyzing resources...';
+            errorAlert.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/orphaned-resources');
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                loadAndDisplayResults(data);
+                
+            } catch (error) {
+                errorAlert.style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+                step2.classList.remove('active');
+            } finally {
+                spinner.style.display = 'none';
+                btn.disabled = false;
+            }
+        });
+
+        // Store detailed resource data
+        let detailedResourceData = null;
+
+        // Load hover preview for a resource type
+        function loadHoverPreview(resourceType) {
+            const previewElement = document.getElementById(`preview-${resourceType}`);
+            
+            if (!previewElement) {
+                console.log('Preview element not found for:', resourceType);
+                return;
+            }
+            
+            // Check if detailed data is loaded
+            if (!detailedResourceData) {
+                console.log('Detailed data not yet loaded');
+                previewElement.innerHTML = '<small><i class="bi bi-hourglass-split"></i> Loading preview...</small>';
+                return;
+            }
+            
+            // Display preview with first 3 resources
+            const resourceDetails = detailedResourceData[resourceType];
+            if (resourceDetails && resourceDetails.resources) {
+                console.log('Loading preview for:', resourceType, resourceDetails.count, 'resources');
+                let html = `
+                    <div class="mb-2">
+                        <strong>${resourceDetails.count} Orphaned Resource${resourceDetails.count > 1 ? 's' : ''}</strong>
+                `;
+                
+                if (resourceDetails.estimated_monthly_cost > 0) {
+                    html += `<div class="mt-1" style="font-size: 0.85rem; opacity: 0.9;">Est. savings: $${resourceDetails.total_estimated_cost.toFixed(2)}/month</div>`;
+                }
+                
+                html += '</div>';
+                
+                resourceDetails.resources.slice(0, 3).forEach(resource => {
+                    html += `
+                        <div class="hover-preview-item">
+                            <i class="bi bi-circle-fill me-2" style="font-size: 0.4rem; color: #FF6B6B;"></i>
+                            <strong style="font-size: 0.9rem;">${resource.name}</strong><br>
+                            <small style="opacity: 0.8; font-size: 0.8rem;">
+                                <i class="bi bi-folder me-1" style="color: #4ECDC4;"></i>${resource.resource_group}
+                            </small>
+                        </div>
+                    `;
+                });
+                
+                if (resourceDetails.count > 3) {
+                    html += `<div class="text-center mt-2" style="font-size: 0.85rem; opacity: 0.8;">+ ${resourceDetails.count - 3} more resources</div>`;
+                }
+                
+                html += '<div class="text-center mt-2" style="font-size: 0.85rem; opacity: 0.9;"><i class="bi bi-mouse me-1"></i>Click "View Details" to see all</div>';
+                
+                previewElement.innerHTML = html;
+            } else {
+                console.log('No resource details found for:', resourceType);
+                previewElement.innerHTML = '<small><i class="bi bi-exclamation-triangle"></i> No data available</small>';
+            }
+        }
+
+        // Show resource details in modal
+        function showResourceModal(resourceType) {
+            const resourceDetails = detailedResourceData[resourceType];
+            if (!resourceDetails) return;
+            
+            const config = resourceConfig[resourceType];
+            const modalTitle = document.getElementById('resourceModalLabel');
+            const modalBody = document.getElementById('resourceModalBody');
+            
+            modalTitle.innerHTML = `<i class="bi ${config.icon} me-2"></i>${config.label} - Orphaned Resources`;
+            
+            let totalCost = resourceDetails.total_estimated_cost;
+            let tableHtml = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <h6 class="mb-0">${resourceDetails.count} Orphaned Resource${resourceDetails.count > 1 ? 's' : ''}</h6>
+                        <small class="text-muted">${config.description}</small>
+                    </div>
+                    ${totalCost > 0 ? `<div class="cost-badge">Est. Savings: $${totalCost.toFixed(2)}/month</div>` : ''}
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover table-sm">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="sortable" onclick="sortTable(0)">Resource Name <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" onclick="sortTable(1)">Resource Group <i class="bi bi-arrow-down-up"></i></th>
+                                <th class="sortable" onclick="sortTable(2)">Location <i class="bi bi-arrow-down-up"></i></th>
+                                ${totalCost > 0 ? '<th>Est. Cost/Month</th>' : ''}
+                            </tr>
+                        </thead>
+                        <tbody id="modalTableBody">
+            `;
+            
+            resourceDetails.resources.forEach(resource => {
+                tableHtml += `
+                    <tr>
+                        <td><strong>${resource.name}</strong></td>
+                        <td><span class="badge bg-secondary">${resource.resource_group}</span></td>
+                        <td><i class="bi bi-geo-alt me-1"></i>${resource.location}</td>
+                        ${totalCost > 0 ? `<td>$${resourceDetails.estimated_monthly_cost.toFixed(2)}</td>` : ''}
+                    </tr>
+                `;
+            });
+            
+            tableHtml += `
+                        </tbody>
+                    </table>
+                </div>
+            `;
+            
+            modalBody.innerHTML = tableHtml;
+            
+            // Add quick actions to modal footer
+            const modalFooter = document.getElementById('resourceModalFooter');
+            modalFooter.innerHTML = `
+                <div class="quick-actions">
+                    <button class="btn" onclick="exportToCSV('${resourceType}')">
+                        <i class="bi bi-download me-1"></i>Export CSV
+                    </button>
+                    <button class="btn" onclick="generateDeleteScript('${resourceType}')">
+                        <i class="bi bi-code-slash me-1"></i>Generate Delete Script
+                    </button>
+                </div>
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            `;
+            
+            const modal = new bootstrap.Modal(document.getElementById('resourceModal'));
+            modal.show();
+        }
+
+        // Export resources to CSV
+        function exportToCSV(resourceType) {
+            const resourceDetails = detailedResourceData[resourceType];
+            if (!resourceDetails) return;
+            
+            const config = resourceConfig[resourceType];
+            let csv = 'Resource Name,Resource Group,Location,Resource ID\n';
+            
+            resourceDetails.resources.forEach(resource => {
+                csv += `"${resource.name}","${resource.resource_group}","${resource.location}","${resource.id}"\n`;
+            });
+            
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `orphaned_${resourceType}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Generate Azure CLI delete script
+        function generateDeleteScript(resourceType) {
+            const resourceDetails = detailedResourceData[resourceType];
+            if (!resourceDetails) return;
+            
+            const config = resourceConfig[resourceType];
+            const date = new Date().toLocaleString();
+            const totalCost = resourceDetails.total_estimated_cost || 0;
+            
+            // Header
+            let script = `#!/bin/bash
+#==============================================================================
+# Azure Orphaned Resources Cleanup Script
+#==============================================================================
+# Resource Type: ${config.label}
+# Description: ${config.description}
+# Total Resources: ${resourceDetails.count}
+${totalCost > 0 ? `# Estimated Monthly Savings: $${totalCost.toFixed(2)}` : ''}
+# Generated: ${date}
+#
+# ⚠️  WARNING: This script will DELETE Azure resources permanently!
+# ⚠️  Review each resource carefully before executing
+# ⚠️  Test in a non-production environment first
+#==============================================================================
+
+set -e  # Exit on error
+
+# Colors for output
+RED='\\033[0;31m'
+GREEN='\\033[0;32m'
+YELLOW='\\033[1;33m'
+NC='\\033[0m' # No Color
+
+# Configuration
+DRY_RUN=true  # Set to false to actually delete resources
+LOG_FILE="delete_${resourceType}_\${date +%Y%m%d_%H%M%S}.log"
+
+echo "Azure Orphaned Resources Cleanup - ${config.label}"
+echo "=========================================="
+echo ""
+
+if [ "$DRY_RUN" = true ]; then
+    echo -e "\${YELLOW}DRY RUN MODE - No resources will be deleted\${NC}"
+    echo "Set DRY_RUN=false to perform actual deletion"
+    echo ""
+fi
+
+# Function to delete resource
+delete_resource() {
+    local resource_id="$1"
+    local resource_name="$2"
+    local resource_group="$3"
+    
+    echo -e "\${YELLOW}Processing:\${NC} $resource_name"
+    echo "  Resource Group: $resource_group"
+    echo "  Resource ID: $resource_id"
+    
+    if [ "$DRY_RUN" = true ]; then
+        echo -e "  \${GREEN}[DRY RUN]\${NC} Would delete this resource"
+    else
+        echo -n "  Deleting... "
+        if az resource delete --ids "$resource_id" --output none 2>> "$LOG_FILE"; then
+            echo -e "\${GREEN}✓ Deleted\${NC}"
+        else
+            echo -e "\${RED}✗ Failed (see log)\${NC}"
+        fi
+    fi
+    echo ""
+}
+
+# Check Azure CLI login
+echo "Checking Azure CLI authentication..."
+if ! az account show &> /dev/null; then
+    echo -e "\${RED}Error: Not logged in to Azure CLI\${NC}"
+    echo "Please run: az login"
+    exit 1
+fi
+
+SUBSCRIPTION=$(az account show --query name -o tsv)
+echo -e "\${GREEN}✓ Authenticated\${NC}"
+echo "Subscription: $SUBSCRIPTION"
+echo ""
+
+# Confirmation prompt
+if [ "$DRY_RUN" = false ]; then
+    echo -e "\${RED}⚠️  WARNING: You are about to delete ${resourceDetails.count} resources!\${NC}"
+    read -p "Are you sure you want to continue? (type 'DELETE' to confirm): " confirm
+    if [ "$confirm" != "DELETE" ]; then
+        echo "Aborted."
+        exit 0
+    fi
+    echo ""
+fi
+
+echo "Starting cleanup process..."
+echo "============================"
+echo ""
+
+`;
+
+            // Group resources by resource group
+            const groupedResources = {};
+            resourceDetails.resources.forEach(resource => {
+                const rg = resource.resource_group;
+                if (!groupedResources[rg]) {
+                    groupedResources[rg] = [];
+                }
+                groupedResources[rg].push(resource);
+            });
+
+            // Generate deletion commands grouped by resource group
+            Object.entries(groupedResources).forEach(([rg, resources]) => {
+                script += `#------------------------------------------------------------------------------
+# Resource Group: ${rg} (${resources.length} resource${resources.length > 1 ? 's' : ''})
+#------------------------------------------------------------------------------
+
+`;
+                resources.forEach(resource => {
+                    script += `delete_resource \\
+    "${resource.id}" \\
+    "${resource.name}" \\
+    "${rg}"
+
+`;
+                });
+                script += `\n`;
+            });
+
+            // Footer
+            script += `#==============================================================================
+# Cleanup Complete
+#==============================================================================
+
+echo ""
+echo -e "\${GREEN}Cleanup process completed!\${NC}"
+echo ""
+
+if [ "$DRY_RUN" = true ]; then
+    echo -e "\${YELLOW}This was a DRY RUN - no resources were deleted\${NC}"
+    echo "To perform actual deletion:"
+    echo "  1. Review this script carefully"
+    echo "  2. Set DRY_RUN=false at the top of the script"
+    echo "  3. Run the script again"
+else
+    echo "Summary:"
+    echo "  Resources processed: ${resourceDetails.count}"
+    echo "  Log file: $LOG_FILE"
+    ${totalCost > 0 ? `echo "  Estimated monthly savings: $${totalCost.toFixed(2)}"` : ''}
+fi
+
+echo ""
+echo -e "\${GREEN}Done!\${NC}"
+`;
+            
+            const blob = new Blob([script], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `delete_orphaned_${resourceType}_${new Date().toISOString().split('T')[0]}.sh`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+        // Sort table in modal
+        let sortDirection = 1;
+        function sortTable(columnIndex) {
+            const tbody = document.getElementById('modalTableBody');
+            const rows = Array.from(tbody.getElementsByTagName('tr'));
+            
+            rows.sort((a, b) => {
+                const aValue = a.getElementsByTagName('td')[columnIndex].textContent.trim();
+                const bValue = b.getElementsByTagName('td')[columnIndex].textContent.trim();
+                return sortDirection * aValue.localeCompare(bValue);
+            });
+            
+            sortDirection *= -1;
+            
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+    </script>
+{% endblock %}

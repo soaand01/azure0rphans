@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}CostPlan{% endblock %}</title>
+    
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar navbar-dark shadow-sm" style="background: #000;">
+        <div class="container-fluid">
+            <div class="d-flex align-items-center">
+                <a href="/" class="navbar-brand mb-0 h1 text-decoration-none">
+                    <i class="bi bi-cloud-check"></i>
+                    CostPlan
+                </a>
+                {% block nav_links %}
+                <a href="/" class="btn btn-sm btn-outline-light ms-3">
+                    <i class="bi bi-house me-1"></i> Home
+                </a>
+                <a href="/overview" class="btn btn-sm btn-outline-light ms-2">
+                    <i class="bi bi-clipboard-data me-1"></i> Overview
+                </a>
+                {% endblock %}
+            </div>
+            <div class="d-flex align-items-center gap-3">
+                <!-- Demo Mode Badge -->
+                <span id="modeBadge" class="badge bg-success">
+                    <i class="bi bi-shield-check me-1"></i>
+                    PRODUCTION
+                </span>
+                <!-- Demo Mode Toggle -->
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" id="demoModeToggle" style="cursor: pointer; width: 2.5em; height: 1.25em;">
+                    <label class="form-check-label ms-1 text-white" for="demoModeToggle" style="cursor: pointer; font-size: 0.9rem;">
+                        <small>Demo</small>
+                    </label>
+                </div>
+                <button class="btn btn-outline-light btn-sm" data-bs-toggle="modal" data-bs-target="#aboutModal">
+                    <i class="bi bi-info-circle me-1"></i>
+                    About
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    {% block content %}{% endblock %}
+
+    <!-- About Modal -->
+    <div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-0" style="background: #000; color: white; padding: 2rem;">
+                    <div>
+                        <h3 class="modal-title mb-2" id="aboutModalLabel">
+                            <i class="bi bi-cloud-check-fill me-2"></i>
+                            CostPlan
+                        </h3>
+                        <p class="mb-0 opacity-90" style="font-size: 0.95rem;">Azure Resource Optimization Platform</p>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body" style="padding: 2rem 2.5rem; background: #f5f5f5;">
+                    <!-- Description -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; background: #000; border: 2px solid #e0e0e0;">
+                                <i class="bi bi-info-circle-fill text-white fs-4"></i>
+                            </div>
+                            <h5 class="mb-0 fw-bold">About CostPlan</h5>
+                        </div>
+                        <p class="text-muted mb-3" style="line-height: 1.8;">
+                            <strong>CostPlan</strong> is a comprehensive Azure resource optimization platform designed to help organizations maximize their cloud investment efficiency. Built on <strong>Azure Well-Architected Framework</strong> principles, this tool empowers cloud teams to identify, analyze, and optimize underutilized or orphaned resources across their entire Azure estate.
+                        </p>
+                        <p class="text-muted mb-0" style="line-height: 1.8;">
+                            The platform provides automated environment scanning, intelligent resource detection, interactive dashboards, and actionable recommendations to reduce waste and improve cost efficiency. With support for 22+ Azure resource types and both production and demo modes, CostPlan makes cloud cost optimization accessible and straightforward for organizations of all sizes.
+                        </p>
+                    </div>
+
+                    <hr class="my-4" style="border-color: #e0e0e0;">
+
+                    <!-- Features Grid -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; background: #000; border: 2px solid #e0e0e0;">
+                                <i class="bi bi-star-fill text-white fs-5"></i>
+                            </div>
+                            <h5 class="mb-0 fw-bold">Key Capabilities</h5>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start p-3 rounded" style="background: white; border: 2px solid #e0e0e0; border-left: 4px solid #000;">
+                                    <i class="bi bi-check-circle-fill me-3 mt-1" style="color: #000;"></i>
+                                    <div>
+                                        <strong class="d-block mb-1">Multi-Resource Scanning</strong>
+                                        <small class="text-muted">Automated detection across 22+ Azure resource types</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start p-3 rounded" style="background: white; border: 2px solid #e0e0e0; border-left: 4px solid #000;">
+                                    <i class="bi bi-check-circle-fill me-3 mt-1" style="color: #000;"></i>
+                                    <div>
+                                        <strong class="d-block mb-1">Orphaned Resource Detection</strong>
+                                        <small class="text-muted">Identify unused VMs, disks, NICs, and more</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start p-3 rounded" style="background: white; border: 2px solid #e0e0e0; border-left: 4px solid #000;">
+                                    <i class="bi bi-check-circle-fill me-3 mt-1" style="color: #000;"></i>
+                                    <div>
+                                        <strong class="d-block mb-1">Interactive Dashboards</strong>
+                                        <small class="text-muted">Visual analytics with detailed insights and charts</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="d-flex align-items-start p-3 rounded" style="background: white; border: 2px solid #e0e0e0; border-left: 4px solid #000;">
+                                    <i class="bi bi-check-circle-fill me-3 mt-1" style="color: #000;"></i>
+                                    <div>
+                                        <strong class="d-block mb-1">Actionable Recommendations</strong>
+                                        <small class="text-muted">Prioritized optimization guidance and export tools</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-color: #e0e0e0;">
+
+                    <!-- Technology Stack -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; background: #000; border: 2px solid #e0e0e0;">
+                                <i class="bi bi-code-slash text-white fs-5"></i>
+                            </div>
+                            <h5 class="mb-0 fw-bold">Technology Stack</h5>
+                        </div>
+                        
+                        <!-- Backend Technologies -->
+                        <div class="mb-3">
+                            <h6 class="mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: #666;">
+                                <i class="bi bi-server me-1"></i>Backend
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-filetype-py fs-2 mb-2" style="color: #3776ab;"></i>
+                                        <div class="small fw-semibold">Python 3.12</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Language</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-cup-hot-fill fs-2 mb-2" style="color: #000;"></i>
+                                        <div class="small fw-semibold">Flask 3.0</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Web Framework</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-layers-fill fs-2 mb-2" style="color: #13aa52;"></i>
+                                        <div class="small fw-semibold">Pandas</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Data Analysis</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-calculator-fill fs-2 mb-2" style="color: #4dabcf;"></i>
+                                        <div class="small fw-semibold">NumPy</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Computing</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Cloud & Azure SDK -->
+                        <div class="mb-3">
+                            <h6 class="mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: #666;">
+                                <i class="bi bi-cloud-fill me-1"></i>Cloud Integration
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-microsoft fs-2 mb-2" style="color: #0078d4;"></i>
+                                        <div class="small fw-semibold">Azure Identity</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Authentication</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-boxes fs-2 mb-2" style="color: #0078d4;"></i>
+                                        <div class="small fw-semibold">Resource Mgmt</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Azure SDK</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-hdd-network-fill fs-2 mb-2" style="color: #0078d4;"></i>
+                                        <div class="small fw-semibold">Network SDK</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Networking</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-cpu-fill fs-2 mb-2" style="color: #0078d4;"></i>
+                                        <div class="small fw-semibold">Compute SDK</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">VMs & More</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Frontend Technologies -->
+                        <div class="mb-0">
+                            <h6 class="mb-2 text-uppercase" style="font-size: 0.75rem; letter-spacing: 0.5px; color: #666;">
+                                <i class="bi bi-palette me-1"></i>Frontend
+                            </h6>
+                            <div class="row g-2">
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-bootstrap-fill fs-2 mb-2" style="color: #7952b3;"></i>
+                                        <div class="small fw-semibold">Bootstrap 5.3</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">UI Framework</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-bar-chart-fill fs-2 mb-2" style="color: #ff6384;"></i>
+                                        <div class="small fw-semibold">Chart.js</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Data Viz</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-filetype-js fs-2 mb-2" style="color: #f7df1e;"></i>
+                                        <div class="small fw-semibold">JavaScript</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Interactivity</div>
+                                    </div>
+                                </div>
+                                <div class="col-6 col-md-3">
+                                    <div class="text-center p-3 rounded" style="background: white; border: 2px solid #e0e0e0;">
+                                        <i class="bi bi-filetype-html fs-2 mb-2" style="color: #e34c26;"></i>
+                                        <div class="small fw-semibold">HTML5/CSS3</div>
+                                        <div class="text-muted" style="font-size: 0.7rem;">Markup</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4" style="border-color: #e0e0e0;">
+
+                    <!-- Author & Contact -->
+                    <div class="mb-4">
+                        <div class="d-flex align-items-center mb-3">
+                            <div class="rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px; background: #000; border: 2px solid #e0e0e0;">
+                                <i class="bi bi-person-fill text-white fs-5"></i>
+                            </div>
+                            <h5 class="mb-0 fw-bold">Created By</h5>
+                        </div>
+                        <div class="card border-0" style="background: white; border: 2px solid #e0e0e0 !important;">
+                            <div class="card-body p-4">
+                                <div class="row align-items-center">
+                                    <div class="col-auto">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center" style="width: 72px; height: 72px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border: 3px solid #e0e0e0; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                                            <span class="text-white fw-bold fs-3">AL</span>
+                                        </div>
+                                    </div>
+                                    <div class="col">
+                                        <h5 class="mb-1 fw-bold">Anderson Lopes</h5>
+                                        <p class="mb-2 text-muted" style="font-size: 0.9rem;">
+                                            <i class="bi bi-microsoft me-1" style="color: #0078d4;"></i>
+                                            Cloud Solution Architect at Microsoft
+                                        </p>
+                                        <p class="mb-0">
+                                            <a href="mailto:andlopes@microsoft.com" class="btn btn-sm btn-outline-dark">
+                                                <i class="bi bi-envelope-fill me-2"></i>andlopes@microsoft.com
+                                            </a>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Disclaimer -->
+                    <div class="alert border-0 mb-0" style="background: white; border: 2px solid #ffc107 !important; border-left: 4px solid #ffc107 !important;">
+                        <div class="d-flex align-items-start">
+                            <i class="bi bi-exclamation-triangle-fill fs-4 me-3 mt-1" style="color: #ffc107;"></i>
+                            <div>
+                                <h6 class="alert-heading fw-bold mb-2">Important Disclaimer</h6>
+                                <p class="mb-2 small">
+                                    <strong>This is an independent tool and not an official Microsoft product.</strong> CostPlan is provided "as-is" for educational and informational purposes only, without any warranties or guarantees of any kind.
+                                </p>
+                                <p class="mb-0 small text-muted">
+                                    Always review and validate all recommendations before taking action on production resources. The author and Microsoft Corporation are not responsible for any issues arising from the use of this tool.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0" style="padding: 1.25rem 2.5rem; background: white; border-top: 2px solid #e0e0e0 !important;">
+                    <div class="w-100 d-flex justify-content-between align-items-center">
+                        <small class="text-muted">
+                            <i class="bi bi-calendar3 me-2"></i>
+                            Version 1.0 | December 2025
+                        </small>
+                        <button type="button" class="btn px-4" data-bs-dismiss="modal" style="background: #000; color: white; border: 2px solid #000;">
+                            <i class="bi bi-x-lg me-2"></i>Close
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap 5 JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Demo Mode Management -->
+    <script>
+        // Demo mode state management (global)
+        window.isDemoMode = localStorage.getItem('demoMode') === 'true';
+        
+        // Initialize demo mode on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            const demoToggle = document.getElementById('demoModeToggle');
+            const modeBadge = document.getElementById('modeBadge');
+            
+            if (demoToggle && modeBadge) {
+                demoToggle.checked = window.isDemoMode;
+                updateModeBadge();
+                
+                // Handle demo mode toggle
+                demoToggle.addEventListener('change', (e) => {
+                    window.isDemoMode = e.target.checked;
+                    localStorage.setItem('demoMode', window.isDemoMode);
+                    updateModeBadge();
+                });
+            }
+        });
+        
+        function updateModeBadge() {
+            const modeBadge = document.getElementById('modeBadge');
+            if (!modeBadge) return;
+            
+            if (window.isDemoMode) {
+                modeBadge.className = 'badge bg-warning text-dark';
+                modeBadge.innerHTML = '<i class="bi bi-info-circle me-1"></i>DEMO MODE';
+            } else {
+                modeBadge.className = 'badge bg-success';
+                modeBadge.innerHTML = '<i class="bi bi-shield-check me-1"></i>PRODUCTION';
+            }
+        }
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>
