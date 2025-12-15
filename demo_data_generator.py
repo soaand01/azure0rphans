@@ -20,7 +20,7 @@ AZURE_REGIONS = [
 
 # Resource groups (realistic names)
 RESOURCE_GROUPS = [
-    'Setic_Preprodu', 'production-rg', 'development-rg', 'networking-rg',
+    'production-rg', 'development-rg', 'networking-rg',
     'identity-server-prd', 'identity-server-dev', 'identity-server-hml',
     'app-services-rg', 'data-platform-rg', 'monitoring-rg',
     'security-rg', 'backup-rg', 'dr-rg', 'shared-services-rg',
