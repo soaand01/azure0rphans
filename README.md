@@ -29,12 +29,31 @@ Azure resource optimization platform for identifying orphaned resources and cost
 
 ## 📋 Usage
 
-1. **Production Mode**: Configure Azure credentials and scan your subscription
-2. **Demo Mode**: Toggle demo mode in the navigation to explore with fake data
-3. **View Results**: 
-   - Orphans View: See all orphaned resources
-   - Complete View: Browse all resources by type
-4. **Export**: Download scan results as CSV
+### Production Mode (Azure Authentication Required)
+
+To scan your actual Azure subscription:
+
+1. **Authenticate with Azure CLI**
+   ```bash
+   az login
+   ```
+
+2. **Select your subscription**
+   ```bash
+   az account set --subscription "your-subscription-id-or-name"
+   ```
+
+3. **Start the application** and scan your environment
+
+### Demo Mode
+
+Toggle demo mode in the navigation to explore with fake data (no Azure authentication needed).
+
+### View Results
+
+- **Orphans View**: See all orphaned resources
+- **Complete View**: Browse all resources by type
+- **Export**: Download scan results as CSV
 
 ## 🔧 Supported Resources
 
