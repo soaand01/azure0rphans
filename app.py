@@ -22,7 +22,6 @@ import json
 
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
-app.config['DATA_FOLDER'] = 'data/app-services'
 app.config['ENVIRONMENT_FOLDER'] = 'data/environment'
 
 # Demo mode - controlled via UI toggle stored in session
@@ -38,7 +37,6 @@ def is_demo_mode():
     return session.get('demo_mode', False)
 
 # Ensure data directories exist
-os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
 os.makedirs(app.config['ENVIRONMENT_FOLDER'], exist_ok=True)
 
 # Resource type configurations
@@ -2396,158 +2394,31 @@ def get_data(resource_type):
                     'message': f'Error analyzing data: {str(e)}'
                 }), 500
         
-        # Original CSV-based logic
-        data_dir = app.config['DATA_FOLDER']
-        
-        # Look for all CSV files in the directory
-        all_files = sorted([f for f in os.listdir(data_dir) if f.endswith('.csv')])
-        
-        if not all_files:
-            return jsonify({
-                'error': 'no_data',
-                'message': 'No data files found. Please upload your CSV files to begin analysis.'
-            }), 404
-        
-        # Determine which files to use - look for file0 (plans) and file1 (apps)
-        plans_files = [f for f in all_files if '_file0_' in f]
-        apps_files = [f for f in all_files if '_file1_' in f]
-        
-        has_plans = len(plans_files) > 0
-        has_apps = len(apps_files) > 0
-        
-        plans_path = os.path.join(data_dir, plans_files[-1]) if has_plans else None
-        apps_path = os.path.join(data_dir, apps_files[-1]) if has_apps else None
-        
-        # Scenario 1: Only Apps CSV (file1) uploaded
-        if has_apps and not has_plans:
-            data = analyze_app_services_only(apps_path)
-            recommendations = generate_apps_only_recommendations(data['df'])
-            
-            # Create simplified charts
-            plan_chart_data = {
-                'labels': [item['Plan'] for item in data['plan_stats'][:10]],
-                'apps': [item['Apps'] for item in data['plan_stats'][:10]]
-            }
-            
-            location_chart_data = {
-                'labels': [item['Location'] for item in data['location_stats']],
-                'apps': [item['Apps'] for item in data['location_stats']]
-            }
-            
-            tier_chart_data = {
-                'labels': [item['Tier'] for item in data['tier_stats']],
-                'apps': [item['Apps'] for item in data['tier_stats']]
-            }
-            
-            combined_metadata = {
-                'enabled': False,
-                'files_count': 1,
-                'mode': 'apps_only',
-                'plans_file': None,
-                'apps_file': apps_files[-1],
-                'total_apps_detailed': len(data['df']),
-                'running_apps': data['running_apps'],
-                'stopped_apps': data['stopped_apps']
-            }
-            
-            response_data = {
-                'summary': convert_to_serializable(data['summary']),
-                'recommendations': convert_to_serializable(recommendations),
-                'recommendation_definitions': APP_SERVICE_RECOMMENDATIONS,
-                'density_metrics': [],
-                'combined_insights': combined_metadata,
-                'charts': {
-                    'tier': tier_chart_data,
-                    'location': location_chart_data,
-                    'plans': plan_chart_data,
-                    'os': {
-                        'labels': [item['OS'] for item in data['os_stats']],
-                        'apps': [item['Apps'] for item in data['os_stats']]
-                    } if data['os_stats'] else None
-                },
-                'tables': {
-                    'tier_stats': data['tier_stats'],
-                    'plan_stats': data['plan_stats'],
-                    'location_stats': data['location_stats'],
-                    'subscription_stats': data['subscription_stats']
-                }
-            }
-            
-            return jsonify(response_data)
-        
-        # Scenario 2 & 3: Plans CSV uploaded (with or without Apps CSV)
-        if not has_plans:
-            return jsonify({
-                'error': 'missing_plans_file',
-                'message': 'App Service Plans CSV (file 1) is required for full analysis. Upload it alone or with Apps CSV (file 2).'
-            }), 400
-        
-        # Analyze plans (always required)
-        data = analyze_app_service_plans(plans_path)
-        df = data['df']
-        
-        recommendations = generate_app_service_recommendations(df)
-        density_metrics = calculate_app_service_density(df)
-        
-        # If we have apps data, do combined analysis
-        combined_insights = False
-        if apps_path and os.path.exists(apps_path):
-            try:
-                apps_df = pd.read_csv(apps_path)
-                # Add combined recommendations
-                combined_recs = generate_combined_recommendations(df, apps_df)
-                recommendations.extend(combined_recs)
-                combined_insights = True
-            except:
-                pass  # Continue with just plans analysis
-        
-        tier_chart_data = {
-            'labels': [str(item['Tier']) for item in data['tier_stats']],
-            'plans': [int(item['Plans']) for item in data['tier_stats']],
-            'apps': [int(item['Apps']) for item in data['tier_stats']],
-            'instances': [int(item['Instances']) for item in data['tier_stats']]
-        }
-        
-        location_chart_data = {
-            'labels': [str(item['Location']) for item in data['location_stats']],
-            'plans': [int(item['Plans']) for item in data['location_stats']],
-            'instances': [int(item['Instances']) for item in data['location_stats']]
-        }
-        
-        os_chart_data = {
-            'labels': [str(item['OS']) for item in data['os_stats']],
-            'plans': [int(item['Plans']) for item in data['os_stats']],
-            'apps': [int(item['Apps']) for item in data['os_stats']]
-        }
-        
-        # Prepare combined insights metadata
-        combined_metadata = {
-            'enabled': combined_insights,
-            'files_count': 2 if combined_insights else 1,
-            'plans_file': plans_files[-1] if plans_files else None,
-            'apps_file': apps_files[-1] if apps_files else None
-        }
-        
-        # If we have apps data, add app-specific metrics to summary
-        if combined_insights and apps_path and os.path.exists(apps_path):
-            try:
-                apps_df = pd.read_csv(apps_path)
-                combined_metadata['total_apps_detailed'] = len(apps_df)
-                if 'STATUS' in apps_df.columns:
-                    combined_metadata['running_apps'] = len(apps_df[apps_df['STATUS'].str.contains('Running', case=False, na=False)])
-                    combined_metadata['stopped_apps'] = len(apps_df[~apps_df['STATUS'].str.contains('Running', case=False, na=False)])
-            except:
-                pass
-        
-        response_data = {
-            'summary': convert_to_serializable(data['summary']),
-            'recommendations': convert_to_serializable(recommendations),
-            'recommendation_definitions': APP_SERVICE_RECOMMENDATIONS,
-            'density_metrics': convert_to_serializable(density_metrics),
-            'combined_insights': combined_metadata,
-            'charts': {
-                'tier': tier_chart_data,
-                'location': location_chart_data,
+        # No data found
+        return jsonify({
+            'error': 'no_data',
+            'message': 'No environment scan data found. Please scan your Azure environment first.'
+        }), 404
+    
+    except Exception as e:
+        print(f"Error in get_data: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'error': 'server_error',
+            'message': f'Server error: {str(e)}'
+        }), 500
+
+# Continue with other routes
+@app.route('/api/export/recommendations/<resource_type>')
+def export_recommendations(resource_type):
+    """Export recommendations as JSON"""
+    # This would be implemented similar to get_data but only return recommendations
+    return jsonify({'status': 'not_implemented'})
+
+
+if __name__ == '__main__':
+    app.run(debug=True, host='0.0.0.0', port=5000)
                 'os': os_chart_data
             },
             'tables': {
