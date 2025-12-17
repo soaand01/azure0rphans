@@ -1515,8 +1515,16 @@ def delete_scan_file(filename):
         if not any(filename.startswith(prefix) for prefix in valid_prefixes) or not filename.endswith('.json'):
             return jsonify({'error': 'Invalid filename'}), 400
         
+        # Prevent directory traversal attacks
+        if '..' in filename or '/' in filename or '\\' in filename:
+            return jsonify({'error': 'Invalid filename'}), 400
+        
         data_dir = app.config['ENVIRONMENT_FOLDER']
         filepath = os.path.join(data_dir, filename)
+        
+        # Additional security: verify the resolved path is within data directory
+        if not os.path.abspath(filepath).startswith(os.path.abspath(data_dir)):
+            return jsonify({'error': 'Invalid file path'}), 400
         
         if not os.path.exists(filepath):
             return jsonify({'error': 'File not found'}), 404
