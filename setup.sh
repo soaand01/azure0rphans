@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting 0rphans Setup..."
+echo "🚀 Starting Azure 0rphans Setup..."
 echo ""
 
 # Check Python version
