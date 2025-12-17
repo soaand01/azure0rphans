@@ -41,11 +41,21 @@ jobs:
           path: |
             .
             !antenv/
+            !venv/
+            !.venv/
+            !env/
             !.git/
             !.github/
             !__pycache__/
+            !**/__pycache__/
             !*.pyc
+            !**/*.pyc
             !.gitignore
+            !data/
+            !*.md
+            !setup.sh
+            !.vscode/
+            !nohup.out
 
       # 🚫 Opting Out of Oryx Build
       # If you prefer to disable the Oryx build process during deployment, follow these steps:
