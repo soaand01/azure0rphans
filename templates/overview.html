@@ -994,6 +994,45 @@
             const step1 = document.getElementById('step1');
             const step2 = document.getElementById('step2');
             
+            // Check if in production mode and show warning immediately
+            if (!window.isDemoMode) {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Production Scan Not Available',
+                    html: `
+                        <div class="text-start">
+                            <p class="mb-3"><strong>This is a demo environment and cannot connect to Azure.</strong></p>
+                            <div class="alert alert-warning">
+                                <i class="bi bi-exclamation-triangle me-2"></i>
+                                <strong>To scan your own Azure environment:</strong>
+                                <ol class="mt-2 mb-0">
+                                    <li>Fork or clone the repository</li>
+                                    <li>Run <code>az login</code> locally</li>
+                                    <li>Start the app on your machine</li>
+                                </ol>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="https://github.com/soaand01/azure0rphans" target="_blank" class="btn btn-dark btn-sm">
+                                    <i class="bi bi-github me-2"></i>View on GitHub
+                                </a>
+                            </div>
+                            <p class="text-muted small mt-3 mb-0">
+                                <i class="bi bi-lightbulb me-1"></i>
+                                <strong>Tip:</strong> Switch to Demo Mode (toggle at top right) to explore with sample data!
+                            </p>
+                        </div>
+                    `,
+                    confirmButtonText: 'Got it!',
+                    confirmButtonColor: '#000',
+                    width: '600px',
+                    customClass: {
+                        popup: 'border-3',
+                        confirmButton: 'btn btn-dark'
+                    }
+                });
+                return; // Stop execution
+            }
+            
             // Show progress modal
             const modal = showProgressModal();
             const progressLog = document.getElementById('progressLog');
