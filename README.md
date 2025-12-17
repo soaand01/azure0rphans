@@ -1,4 +1,4 @@
-# 0rphans
+# Azure 0rphans
 
 Zero waste, zero orphans - Identify and eliminate orphaned Azure resources.
 
