@@ -340,15 +340,36 @@
             const demoToggle = document.getElementById('demoModeToggle');
             const modeBadge = document.getElementById('modeBadge');
             
-            if (demoToggle && modeBadge) {
-                demoToggle.checked = window.isDemoMode;
-                updateModeBadge();
-                
-                // Handle demo mode toggle
-                demoToggle.addEventListener('change', (e) => {
-                    window.isDemoMode = e.target.checked;
-                    localStorage.setItem('demoMode', window.isDemoMode);
-                    updateModeBadge();
+            // Load demo mode status from server
+            fetch('/api/demo-mode')
+                .then(r => r.json())
+                .then(data => {
+                    if (demoToggle) {
+                        demoToggle.checked = data.demo_mode;
+                        window.isDemoMode = data.demo_mode;
+                        updateModeBadge();
+                    }
+                });
+            
+            // Handle demo mode toggle
+            if (demoToggle) {
+                demoToggle.addEventListener('change', async (e) => {
+                    const enabled = e.target.checked;
+                    try {
+                        const response = await fetch('/api/demo-mode', {
+                            method: 'POST',
+                            headers: {'Content-Type': 'application/json'},
+                            body: JSON.stringify({enabled})
+                        });
+                        const data = await response.json();
+                        window.isDemoMode = data.demo_mode;
+                        updateModeBadge();
+                        // Reload page to refresh data for all pages
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('Failed to toggle demo mode:', error);
+                        demoToggle.checked = !enabled; // Revert on error
+                    }
                 });
             }
         });
