@@ -1121,10 +1121,18 @@
                 // Setup OK button handler
                 document.getElementById('progressModalOkBtn').onclick = () => {
                     modal.hide();
-                    // Auto-trigger analysis after modal closes
-                    setTimeout(() => {
-                        analyzeBtn.click();
-                    }, 300);
+                    
+                    // If in demo mode, redirect to home page
+                    if (window.isDemoMode) {
+                        setTimeout(() => {
+                            window.location.href = '/';
+                        }, 300);
+                    } else {
+                        // In production mode, auto-trigger analysis after modal closes
+                        setTimeout(() => {
+                            analyzeBtn.click();
+                        }, 300);
+                    }
                 };
                 
             } catch (error) {
