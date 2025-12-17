@@ -1,6 +1,8 @@
-# CostPlan
+# 0rphans
 
-Azure resource optimization platform for identifying orphaned resources and cost-saving opportunities.
+Zero waste, zero orphans - Identify and eliminate orphaned Azure resources.
+
+**Making sure you have 0 waste in your Azure environment.**
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue.svg)
 ![Flask](https://img.shields.io/badge/Flask-3.0-green.svg)

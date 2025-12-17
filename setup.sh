@@ -1,6 +1,6 @@
 #!/bin/bash
 
-echo "🚀 Starting CostPlan Setup..."
+echo "🚀 Starting 0rphans Setup..."
 echo ""
 
 # Check Python version
