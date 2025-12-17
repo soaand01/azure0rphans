@@ -26,7 +26,6 @@ build/
 Thumbs.db
 
 # Application data - NEVER commit customer data
-data/app-services/*.csv
 data/environment/*.json
 nohup.out
 
