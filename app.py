@@ -4,6 +4,8 @@ Azure App Service Plans cost optimization analyzer
 """
 
 from flask import Flask, render_template, jsonify, request, redirect, url_for, session
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
 import pandas as pd
 import numpy as np
 import re
@@ -23,6 +25,15 @@ import json
 app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['ENVIRONMENT_FOLDER'] = 'data/environment'
+
+# Initialize rate limiter
+limiter = Limiter(
+    app=app,
+    key_func=get_remote_address,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://",
+    strategy="fixed-window"
+)
 
 # Demo mode - controlled via UI toggle stored in session
 # Demo mode:
@@ -1378,6 +1389,7 @@ def overview():
     return render_template('overview.html')
 
 @app.route('/api/download-environment')
+@limiter.limit("5 per hour")  # Limit Azure scans to 5 per hour per IP
 def api_download_environment():
     """API endpoint to download Azure environment as JSON"""
     try:
@@ -1548,6 +1560,7 @@ def delete_all_scans():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/orphaned-resources')
+@limiter.limit("30 per minute")  # Limit analysis requests
 def get_orphaned_resources():
     """API endpoint to get orphaned resources count from local JSON file"""
     try:
@@ -1574,6 +1587,7 @@ def get_orphaned_resources():
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/complete-resources')
+@limiter.limit("30 per minute")  # Limit analysis requests
 def get_complete_resources():
     """API endpoint to get complete resource counts (total, active, orphaned) from local JSON file"""
     try:
