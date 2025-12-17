@@ -72,6 +72,7 @@ def generate_wasteful_environment(target_resources=1000):
     num_app_gateways = int(25 * scale_factor * random.uniform(0.8, 1.2))
     num_vnets = int(50 * scale_factor * random.uniform(0.8, 1.2))
     num_subnets = int(80 * scale_factor * random.uniform(0.8, 1.2))
+    num_ip_groups = int(25 * scale_factor * random.uniform(0.8, 1.2))
     num_private_dns = int(30 * scale_factor * random.uniform(0.8, 1.2))
     num_private_endpoints = int(45 * scale_factor * random.uniform(0.8, 1.2))
     num_vnet_gateways = int(20 * scale_factor * random.uniform(0.8, 1.2))
@@ -159,12 +160,16 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('nsg')}-{i:03d}"
         
+        # 25% not attached to any subnet or NIC (orphaned)
+        is_orphaned = random.random() < 0.25
+        
         network_security_groups.append({
             'id': generate_resource_id('Microsoft.Network/networkSecurityGroups', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
-            'security_rules_count': random.randint(0, 25)
+            'security_rules_count': random.randint(0, 25),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['network_security_groups'] = network_security_groups
@@ -217,6 +222,9 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('waf')}-{i:03d}"
         
+        # 35% not attached to any Front Door profile (orphaned)
+        is_orphaned = random.random() < 0.35
+        
         frontdoor_waf_policies.append({
             'id': generate_resource_id('Microsoft.Network/FrontDoorWebApplicationFirewallPolicies', rg, name),
             'name': name,
@@ -224,7 +232,8 @@ def generate_wasteful_environment(target_resources=1000):
             'location': location,
             'policy_mode': random.choice(['Prevention', 'Detection']),
             'custom_rules_count': random.randint(0, 20),
-            'managed_rules_count': random.randint(1, 5)
+            'managed_rules_count': random.randint(1, 5),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['frontdoor_waf_policies'] = frontdoor_waf_policies
@@ -236,14 +245,18 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('tm')}-{i:03d}"
         
+        # 25% have no endpoints (orphaned)
+        is_orphaned = random.random() < 0.25
+        
         traffic_manager_profiles.append({
             'id': generate_resource_id('Microsoft.Network/trafficManagerProfiles', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
             'routing_method': random.choice(['Performance', 'Weighted', 'Priority', 'Geographic']),
-            'endpoints_count': random.randint(1, 8),
-            'status': random.choice(['Enabled', 'Disabled'])
+            'endpoints_count': 0 if is_orphaned else random.randint(1, 8),
+            'status': random.choice(['Enabled', 'Disabled']),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['traffic_manager_profiles'] = traffic_manager_profiles
@@ -306,23 +319,44 @@ def generate_wasteful_environment(target_resources=1000):
     
     data['resources']['subnets'] = subnets
     
-    # === IP GROUPS (empty) ===
-    data['resources']['ip_groups'] = []
+    # === IP GROUPS ===
+    ip_groups = []
+    for i in range(num_ip_groups):
+        location = random.choice(AZURE_REGIONS)
+        rg = random.choice(RESOURCE_GROUPS)
+        name = f"{generate_resource_name('ipg')}-{i:03d}"
+        
+        # 40% not attached to any firewall (orphaned)
+        is_orphaned = random.random() < 0.40
+        
+        ip_groups.append({
+            'id': generate_resource_id('Microsoft.Network/ipGroups', rg, name),
+            'name': name,
+            'resource_group': rg,
+            'location': location,
+            'ip_addresses_count': random.randint(1, 50),
+            'is_orphaned': is_orphaned
+        })
+    
+    data['resources']['ip_groups'] = ip_groups
     
     # === PRIVATE DNS ZONES ===
     private_dns_zones = []
     for i in range(num_private_dns):
+        location = 'global'
         rg = random.choice(RESOURCE_GROUPS)
-        domain = random.choice(['privatelink.database.windows.net', 'privatelink.blob.core.windows.net', 
-                                'privatelink.azurewebsites.net', 'internal.company.com'])
-        name = f"{domain}"
+        name = f"privatelink.{random.choice(['database', 'blob', 'file', 'queue', 'table', 'web', 'vaultcore'])}.{random.choice(['windows', 'azure', 'database'])}.net"
+        
+        # 30% without virtual network links (orphaned)
+        is_orphaned = random.random() < 0.30
         
         private_dns_zones.append({
             'id': generate_resource_id('Microsoft.Network/privateDnsZones', rg, name),
             'name': name,
             'resource_group': rg,
-            'number_of_record_sets': random.randint(1, 50),
-            'number_of_virtual_network_links': random.randint(0, 5)
+            'location': location,
+            'record_sets_count': random.randint(1, 30),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['private_dns_zones'] = private_dns_zones
@@ -334,12 +368,17 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('pe')}-{i:03d}"
         
+        # 20% not connected or rejected (orphaned)
+        is_orphaned = random.random() < 0.20
+        connection_state = 'Rejected' if is_orphaned and random.random() < 0.5 else ('Pending' if is_orphaned else 'Approved')
+        
         private_endpoints.append({
             'id': generate_resource_id('Microsoft.Network/privateEndpoints', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
-            'connection_state': random.choice(['Approved', 'Pending', 'Rejected'])
+            'connection_state': connection_state,
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['private_endpoints'] = private_endpoints
@@ -351,13 +390,17 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('vgw')}-{i:03d}"
         
+        # 20% with no connections or P2S config (orphaned)
+        is_orphaned = random.random() < 0.20
+        
         virtual_network_gateways.append({
             'id': generate_resource_id('Microsoft.Network/virtualNetworkGateways', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
             'gateway_type': random.choice(['Vpn', 'ExpressRoute']),
-            'sku': random.choice(['VpnGw1', 'VpnGw2', 'VpnGw3', 'ErGw1AZ', 'ErGw2AZ'])
+            'sku': random.choice(['VpnGw1', 'VpnGw2', 'VpnGw3', 'ErGw1AZ', 'ErGw2AZ']),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['virtual_network_gateways'] = virtual_network_gateways
@@ -369,12 +412,16 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('ddos')}-{i:03d}"
         
+        # 50% with no protected resources (orphaned - very wasteful!)
+        is_orphaned = random.random() < 0.50
+        
         ddos_protection_plans.append({
             'id': generate_resource_id('Microsoft.Network/ddosProtectionPlans', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
-            'protected_resources_count': random.randint(0, 20)
+            'protected_resources_count': 0 if is_orphaned else random.randint(1, 20),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['ddos_protection_plans'] = ddos_protection_plans
@@ -386,13 +433,18 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('api')}-{i:03d}"
         
+        # 40% not used by any Logic App or in error state (orphaned)
+        is_orphaned = random.random() < 0.40
+        status = random.choice(['Error', 'Unauthenticated']) if is_orphaned else 'Connected'
+        
         api_connections.append({
             'id': generate_resource_id('Microsoft.Web/connections', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
             'api_type': random.choice(['office365', 'azureblob', 'sql', 'servicebus', 'cosmosdb']),
-            'status': random.choice(['Connected', 'Error', 'Unauthenticated'])
+            'status': status,
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['api_connections'] = api_connections
@@ -404,14 +456,24 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('cert')}-{i:03d}"
         
+        # 30% expired or expiring soon (orphaned)
+        is_orphaned = random.random() < 0.30
+        if is_orphaned:
+            # Expired certificates (past dates)
+            expiration_date = f"202{random.randint(2,4)}-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+        else:
+            # Valid certificates (future dates)
+            expiration_date = f"2026-{random.randint(1,12):02d}-{random.randint(1,28):02d}"
+        
         certificates.append({
             'id': generate_resource_id('Microsoft.Web/certificates', rg, name),
             'name': name,
             'resource_group': rg,
             'location': location,
             'subject_name': f"*.{random.choice(['contoso', 'fabrikam', 'demo', 'app'])}.com",
-            'expiration_date': f"2026-{random.randint(1,12):02d}-{random.randint(1,28):02d}",
-            'issuer': random.choice(['DigiCert', 'Let\'s Encrypt', 'GlobalSign'])
+            'expiration_date': expiration_date,
+            'issuer': random.choice(['DigiCert', 'Let\'s Encrypt', 'GlobalSign']),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['certificates'] = certificates
@@ -446,6 +508,9 @@ def generate_wasteful_environment(target_resources=1000):
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('nat')}-{i:03d}"
         
+        # 35% not attached to any subnet (orphaned)
+        is_orphaned = random.random() < 0.35
+        
         nat_gateways.append({
             'id': generate_resource_id('Microsoft.Network/natGateways', rg, name),
             'name': name,
@@ -453,7 +518,8 @@ def generate_wasteful_environment(target_resources=1000):
             'location': location,
             'sku': 'Standard',
             'idle_timeout_minutes': random.choice([4, 10, 15, 30]),
-            'subnets_count': random.randint(0, 5)
+            'subnets_count': 0 if is_orphaned else random.randint(1, 5),
+            'is_orphaned': is_orphaned
         })
     
     data['resources']['nat_gateways'] = nat_gateways
