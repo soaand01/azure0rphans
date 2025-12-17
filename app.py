@@ -767,7 +767,11 @@ def download_azure_environment():
         subscription_id = get_subscription_id()
         
         if not credential or not subscription_id:
-            return {'error': 'Unable to authenticate with Azure CLI'}
+            return {
+                'error': 'authentication_required',
+                'message': 'Unable to authenticate with Azure CLI',
+                'details': 'Please run "az login" in your terminal to authenticate with Azure before scanning.'
+            }
         
         # Initialize clients
         resource_client = ResourceManagementClient(credential, subscription_id)
