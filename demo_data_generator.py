@@ -47,7 +47,7 @@ def generate_wasteful_environment(target_resources=1000):
     """
     Generate "Wasteful Environment" scenario matching production JSON structure
     - ~60% of resources are orphaned/wasted
-    - Target: 1000 resources total (massive wasteful environment)
+    - Target: variable resources total (randomized for each scan)
     - Matches EXACT production data structure
     """
     
@@ -57,40 +57,44 @@ def generate_wasteful_environment(target_resources=1000):
         'resources': {}
     }
     
-    # Calculate distribution (aiming for ~1000+ resources with ALL types)
-    num_disks = 150
-    num_public_ips = 120
-    num_nics = 180
-    num_nsgs = 70
-    num_route_tables = 40
-    num_load_balancers = 50
-    num_frontdoor_waf = 15
-    num_traffic_manager = 20
-    num_app_gateways = 25
-    num_vnets = 50
-    num_subnets = 80
-    num_private_dns = 30
-    num_private_endpoints = 45
-    num_vnet_gateways = 20
-    num_ddos_plans = 8
-    num_api_connections = 35
-    num_certificates = 25
-    num_availability_sets = 30
-    num_nat_gateways = 15
-    num_app_service_plans = 55
-    num_sql_servers = 35
-    num_virtual_machines = 70
+    # Calculate distribution with randomization (scale based on target_resources)
+    scale_factor = target_resources / 1000.0
+    variance = random.uniform(0.8, 1.2)  # Add 20% variance
+    
+    num_disks = int(150 * scale_factor * variance)
+    num_public_ips = int(120 * scale_factor * random.uniform(0.8, 1.2))
+    num_nics = int(180 * scale_factor * random.uniform(0.8, 1.2))
+    num_nsgs = int(70 * scale_factor * random.uniform(0.8, 1.2))
+    num_route_tables = int(40 * scale_factor * random.uniform(0.8, 1.2))
+    num_load_balancers = int(50 * scale_factor * random.uniform(0.8, 1.2))
+    num_frontdoor_waf = int(15 * scale_factor * random.uniform(0.8, 1.2))
+    num_traffic_manager = int(20 * scale_factor * random.uniform(0.8, 1.2))
+    num_app_gateways = int(25 * scale_factor * random.uniform(0.8, 1.2))
+    num_vnets = int(50 * scale_factor * random.uniform(0.8, 1.2))
+    num_subnets = int(80 * scale_factor * random.uniform(0.8, 1.2))
+    num_private_dns = int(30 * scale_factor * random.uniform(0.8, 1.2))
+    num_private_endpoints = int(45 * scale_factor * random.uniform(0.8, 1.2))
+    num_vnet_gateways = int(20 * scale_factor * random.uniform(0.8, 1.2))
+    num_ddos_plans = int(8 * scale_factor * random.uniform(0.8, 1.2))
+    num_api_connections = int(35 * scale_factor * random.uniform(0.8, 1.2))
+    num_certificates = int(25 * scale_factor * random.uniform(0.8, 1.2))
+    num_availability_sets = int(30 * scale_factor * random.uniform(0.8, 1.2))
+    num_nat_gateways = int(15 * scale_factor * random.uniform(0.8, 1.2))
+    num_app_service_plans = int(55 * scale_factor * random.uniform(0.8, 1.2))
+    num_sql_servers = int(35 * scale_factor * random.uniform(0.8, 1.2))
+    num_virtual_machines = int(70 * scale_factor * random.uniform(0.8, 1.2))
     num_resource_groups = len(RESOURCE_GROUPS)
     
-    # === DISKS (50% orphaned) ===
+    # === DISKS (randomly 40-60% orphaned) ===
     disks = []
+    orphan_rate_disks = random.uniform(0.4, 0.6)
     for i in range(num_disks):
         location = random.choice(AZURE_REGIONS)
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('disk')}-{i:03d}"
         
-        # 50% are orphaned
-        is_orphaned = random.random() < 0.5
+        # Variable orphan rate
+        is_orphaned = random.random() < orphan_rate_disks
         
         disks.append({
             'id': generate_resource_id('Microsoft.Compute/disks', rg, name),
@@ -105,15 +109,16 @@ def generate_wasteful_environment(target_resources=1000):
     
     data['resources']['disks'] = disks
     
-    # === PUBLIC IPs (60% orphaned) ===
+    # === PUBLIC IPs (randomly 50-70% orphaned) ===
     public_ips = []
+    orphan_rate_ips = random.uniform(0.5, 0.7)
     for i in range(num_public_ips):
         location = random.choice(AZURE_REGIONS)
         rg = random.choice(RESOURCE_GROUPS)
         name = f"{generate_resource_name('pip')}-{i:03d}"
         
-        # 60% are orphaned (very wasteful!)
-        is_orphaned = random.random() < 0.6
+        # Variable orphan rate (very wasteful!)
+        is_orphaned = random.random() < orphan_rate_ips
         
         public_ips.append({
             'id': generate_resource_id('Microsoft.Network/publicIPAddresses', rg, name),

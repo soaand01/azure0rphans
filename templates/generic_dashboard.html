@@ -114,8 +114,8 @@
                                 <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" 
                                    title="The estimated monthly cost you're paying for resources that are not being used or are orphaned. Cleaning these up will immediately reduce your Azure bill."></i>
                             </h6>
-                            <h2 class="mb-2 text-danger" id="monthlyWaste">$0</h2>
-                            <p class="mb-0 small text-muted">Estimated cost of orphaned resources</p>
+                            <h2 class="mb-2 text-muted" id="monthlyWaste" style="font-size: 1.1rem;"><i class="bi bi-plug me-2"></i>Cost Management Not Connected</h2>
+                            <p class="mb-0 small text-muted">Connect Azure Cost Management to see estimated costs</p>
                         </div>
                     </div>
                 </div>
@@ -127,8 +127,8 @@
                                 <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" 
                                    title="The total amount you could save per year by removing all orphaned resources. This is Monthly Waste × 12, representing your annual cost reduction opportunity."></i>
                             </h6>
-                            <h2 class="mb-2 text-success" id="annualSavings">$0</h2>
-                            <p class="mb-0 small text-muted">Potential yearly cost reduction</p>
+                            <h2 class="mb-2 text-muted" id="annualSavings" style="font-size: 1.1rem;"><i class="bi bi-plug me-2"></i>Cost Management Not Connected</h2>
+                            <p class="mb-0 small text-muted">Connect Azure Cost Management to see potential savings</p>
                         </div>
                     </div>
                 </div>
@@ -234,13 +234,13 @@
                     <div class="card data-table border-0 shadow-sm h-100">
                         <div class="card-header bg-white border-0 py-3">
                             <h5 class="mb-0">
-                                <i class="bi bi-shield-exclamation me-2"></i>Risk Assessment
+                                <i class="bi bi-heart-pulse me-2"></i>Resource Health Overview
                                 <i class="bi bi-info-circle info-icon" data-bs-toggle="tooltip" data-bs-placement="top" 
-                                   title="Evaluates the potential security, compliance, and operational risks associated with orphaned resources in your environment. Higher risk levels require more urgent attention."></i>
+                                   title="Summary of your resource utilization and optimization opportunities. Shows the breakdown of active, orphaned, and potentially optimizable resources."></i>
                             </h5>
                         </div>
                         <div class="card-body">
-                            <div id="riskAssessment">
+                            <div id="resourceHealth">
                                 <div class="text-center py-4">
                                     <div class="spinner-border spinner-border-sm" role="status"></div>
                                 </div>
@@ -503,9 +503,9 @@
                 document.getElementById('activeCount').textContent = data.summary.active_count;
                 document.getElementById('orphanedPercentage').textContent = data.summary.orphaned_percentage + '%';
                 
-                // Populate risk assessment
-                if (data.risk_assessment) {
-                    populateRiskAssessment(data.risk_assessment);
+                // Populate resource health
+                if (data.summary) {
+                    populateResourceHealth(data.summary);
                 }
                 
                 // Populate action priorities
@@ -648,34 +648,57 @@
             });
         }
 
-        function populateRiskAssessment(riskData) {
-            const container = document.getElementById('riskAssessment');
+        function populateResourceHealth(summary) {
+            const container = document.getElementById('resourceHealth');
             
-            const levelColors = {
-                'High': 'danger',
-                'Medium': 'warning',
-                'Low': 'success',
-                'None': 'secondary'
-            };
+            const totalResources = summary.total_resources || 0;
+            const orphanedCount = summary.orphaned_count || 0;
+            const activeCount = totalResources - orphanedCount;
+            const orphanedPct = summary.orphaned_percentage || 0;
+            const activePct = 100 - orphanedPct;
             
-            const levelColor = levelColors[riskData.level] || 'secondary';
+            let healthStatus = 'Excellent';
+            let healthColor = 'success';
+            let healthIcon = 'check-circle-fill';
+            
+            if (orphanedPct >= 50) {
+                healthStatus = 'Needs Attention';
+                healthColor = 'danger';
+                healthIcon = 'exclamation-circle-fill';
+            } else if (orphanedPct >= 25) {
+                healthStatus = 'Fair';
+                healthColor = 'warning';
+                healthIcon = 'exclamation-triangle-fill';
+            } else if (orphanedPct >= 10) {
+                healthStatus = 'Good';
+                healthColor = 'info';
+                healthIcon = 'info-circle-fill';
+            }
             
             let html = `
                 <div class="text-center mb-3">
-                    <h3 class="text-${levelColor}"><i class="bi bi-shield-${riskData.level === 'High' ? 'x' : riskData.level === 'Medium' ? 'exclamation' : 'check'}"></i></h3>
-                    <h5 class="text-${levelColor}">${riskData.level} Risk</h5>
+                    <h3 class="text-${healthColor}"><i class="bi bi-${healthIcon}"></i></h3>
+                    <h5 class="text-${healthColor}">${healthStatus}</h5>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted">Active Resources</small>
+                        <small class="text-success fw-bold">${activeCount} (${activePct.toFixed(1)}%)</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: ${activePct}%"></div>
+                    </div>
+                </div>
+                <div class="mb-2">
+                    <div class="d-flex justify-content-between mb-1">
+                        <small class="text-muted">Orphaned Resources</small>
+                        <small class="text-danger fw-bold">${orphanedCount} (${orphanedPct.toFixed(1)}%)</small>
+                    </div>
+                    <div class="progress" style="height: 8px;">
+                        <div class="progress-bar bg-danger" role="progressbar" style="width: ${orphanedPct}%"></div>
+                    </div>
                 </div>
             `;
-            
-            if (riskData.items && riskData.items.length > 0) {
-                html += '<ul class="list-unstyled">';
-                riskData.items.forEach(item => {
-                    html += `<li class="mb-2"><i class="bi bi-dot text-${levelColor}"></i> ${item}</li>`;
-                });
-                html += '</ul>';
-            } else {
-                html += '<p class="text-muted small mb-0">No risk items identified</p>';
-            }
             
             container.innerHTML = html;
         }
@@ -689,7 +712,7 @@
             if (priorities.urgent && priorities.urgent.length > 0) {
                 html += `
                     <div class="mb-3">
-                        <h6 class="text-danger"><i class="bi bi-exclamation-circle-fill me-2"></i>URGENT (Do Now)</h6>
+                        <h6 class="text-danger"><i class="bi bi-exclamation-circle-fill me-2"></i>Critical (Recommended Soon)</h6>
                         <ul class="list-unstyled ms-3">
                 `;
                 priorities.urgent.forEach(item => {
@@ -702,7 +725,7 @@
             if (priorities.high && priorities.high.length > 0) {
                 html += `
                     <div class="mb-3">
-                        <h6 class="text-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>HIGH PRIORITY (This Week)</h6>
+                        <h6 class="text-warning"><i class="bi bi-exclamation-triangle-fill me-2"></i>High Priority (Consider This Week)</h6>
                         <ul class="list-unstyled ms-3">
                 `;
                 priorities.high.forEach(item => {
@@ -715,7 +738,7 @@
             if (priorities.low && priorities.low.length > 0) {
                 html += `
                     <div class="mb-3">
-                        <h6 class="text-success"><i class="bi bi-info-circle-fill me-2"></i>LOW PRIORITY (This Month)</h6>
+                        <h6 class="text-success"><i class="bi bi-info-circle-fill me-2"></i>Low Priority (Review This Month)</h6>
                         <ul class="list-unstyled ms-3">
                 `;
                 priorities.low.forEach(item => {

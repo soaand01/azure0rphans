@@ -3,7 +3,7 @@ CostPlan
 Azure App Service Plans cost optimization analyzer
 """
 
-from flask import Flask, render_template, jsonify, request, redirect, url_for
+from flask import Flask, render_template, jsonify, request, redirect, url_for, session
 import pandas as pd
 import numpy as np
 import re
@@ -21,10 +21,23 @@ import subprocess
 import json
 
 app = Flask(__name__)
+app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['DATA_FOLDER'] = 'data/app-services'
 app.config['ENVIRONMENT_FOLDER'] = 'data/environment'
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
 app.config['ALLOWED_EXTENSIONS'] = {'csv'}
+
+# Demo mode - controlled via UI toggle stored in session
+# Demo mode:
+#   - Scan files are saved with 'azure_scan_demo_' prefix
+#   - Only demo files are shown in the UI
+#   - Delete operations are blocked for demo files
+DEV_FILE_PREFIX = 'azure_scan_demo_'
+PROD_FILE_PREFIX = 'azure_scan_production_'
+
+# Helper function to check demo mode from session
+def is_demo_mode():
+    return session.get('demo_mode', False)
 
 # Ensure data directories exist
 os.makedirs(app.config['DATA_FOLDER'], exist_ok=True)
@@ -1377,8 +1390,11 @@ def api_download_environment():
         
         if demo_mode:
             # Generate demo data instead of real Azure scan
+            import random
             from demo_data_generator import generate_wasteful_environment
-            env_data = generate_wasteful_environment()
+            # Randomize resource count between 800-1500 for variety
+            target_resources = random.randint(800, 1500)
+            env_data = generate_wasteful_environment(target_resources=target_resources)
         else:
             # Real Azure scan
             env_data = download_azure_environment()
@@ -1390,7 +1406,13 @@ def api_download_environment():
         data_dir = app.config['ENVIRONMENT_FOLDER']
         os.makedirs(data_dir, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f'azure_environment_{timestamp}.json'
+        
+        # Use appropriate filename with clear mode identification
+        if is_demo_mode():
+            filename = f'azure_scan_demo_{timestamp}.json'
+        else:
+            filename = f'azure_scan_production_{timestamp}.json'
+        
         filepath = os.path.join(data_dir, filename)
         
         with open(filepath, 'w') as f:
@@ -1409,12 +1431,31 @@ def api_download_environment():
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/demo-mode', methods=['GET', 'POST'])
+def demo_mode_toggle():
+    """Get or set demo mode status"""
+    if request.method == 'POST':
+        data = request.json
+        session['demo_mode'] = data.get('enabled', False)
+        return jsonify({'success': True, 'demo_mode': session.get('demo_mode', False)})
+    else:
+        return jsonify({'demo_mode': session.get('demo_mode', False)})
+
 @app.route('/api/scan-files')
 def get_scan_files():
     """API endpoint to list all available scan files"""
     try:
         data_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = [f for f in os.listdir(data_dir) if f.startswith('azure_environment_') and f.endswith('.json')]
+        
+        # Filter files based on environment
+        if is_demo_mode():
+            # In dev mode, only show dev files
+            json_files = [f for f in os.listdir(data_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')]
+        else:
+            # In production, only show non-dev files
+            json_files = [f for f in os.listdir(data_dir) 
+                         if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                         and not f.startswith(DEV_FILE_PREFIX)]
         
         scan_files = []
         for filename in json_files:
@@ -1447,7 +1488,8 @@ def get_scan_files():
         return jsonify({
             'files': scan_files,
             'total_count': len(scan_files),
-            'total_size_mb': round(sum(f['size'] for f in scan_files) / (1024 * 1024), 2)
+            'total_size_mb': round(sum(f['size'] for f in scan_files) / (1024 * 1024), 2),
+            'dev_mode': is_demo_mode()
         })
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -1456,8 +1498,13 @@ def get_scan_files():
 def delete_scan_file(filename):
     """API endpoint to delete a specific scan file"""
     try:
-        # Security check: ensure filename is valid
-        if not filename.startswith('azure_environment_') or not filename.endswith('.json'):
+        # Prevent deletion of demo files
+        if filename.startswith(DEV_FILE_PREFIX):
+            return jsonify({'error': 'Cannot delete demo files'}), 403
+        
+        # Security check: ensure filename is valid (allow new and old naming formats)
+        valid_prefixes = ('azure_scan_production_', 'azure_scan_demo_', 'azure_environment_')
+        if not any(filename.startswith(prefix) for prefix in valid_prefixes) or not filename.endswith('.json'):
             return jsonify({'error': 'Invalid filename'}), 400
         
         data_dir = app.config['ENVIRONMENT_FOLDER']
@@ -1480,7 +1527,15 @@ def delete_all_scans():
     """API endpoint to delete all scan files"""
     try:
         data_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = [f for f in os.listdir(data_dir) if f.startswith('azure_environment_') and f.endswith('.json')]
+        
+        # In demo mode, cannot delete demo files; in production, only delete production files
+        if is_demo_mode():
+            return jsonify({'error': 'Cannot delete demo files'}), 403
+        
+        # Only delete production files (not demo files)
+        json_files = [f for f in os.listdir(data_dir) 
+                     if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                     and not f.startswith(DEV_FILE_PREFIX)]
         
         deleted_count = 0
         for filename in json_files:
@@ -1502,7 +1557,14 @@ def get_orphaned_resources():
     try:
         # Find the latest environment JSON file
         data_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = [f for f in os.listdir(data_dir) if f.startswith('azure_environment_') and f.endswith('.json')]
+        
+        # Filter files based on environment
+        if is_demo_mode():
+            json_files = [f for f in os.listdir(data_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')]
+        else:
+            json_files = [f for f in os.listdir(data_dir) 
+                         if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                         and not f.startswith(DEV_FILE_PREFIX)]
         
         if not json_files:
             return jsonify({'error': 'No environment data found. Please download environment first.'}), 404
@@ -1521,7 +1583,14 @@ def get_complete_resources():
     try:
         # Find the latest environment JSON file
         data_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = [f for f in os.listdir(data_dir) if f.startswith('azure_environment_') and f.endswith('.json')]
+        
+        # Filter files based on environment
+        if is_demo_mode():
+            json_files = [f for f in os.listdir(data_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')]
+        else:
+            json_files = [f for f in os.listdir(data_dir) 
+                         if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                         and not f.startswith(DEV_FILE_PREFIX)]
         
         if not json_files:
             return jsonify({'error': 'No environment data found. Please download environment first.'}), 404
@@ -1584,7 +1653,14 @@ def get_resource_availability():
     try:
         # Find the latest environment JSON file
         data_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = [f for f in os.listdir(data_dir) if f.startswith('azure_environment_') and f.endswith('.json')]
+        
+        # Filter files based on environment
+        if is_demo_mode():
+            json_files = [f for f in os.listdir(data_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')]
+        else:
+            json_files = [f for f in os.listdir(data_dir) 
+                         if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                         and not f.startswith(DEV_FILE_PREFIX)]
         
         if not json_files:
             return jsonify({'error': 'No scan data', 'availability': {}})
@@ -1646,7 +1722,14 @@ def get_orphaned_resources_details():
     try:
         # Find the latest environment JSON file
         data_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = [f for f in os.listdir(data_dir) if f.startswith('azure_environment_') and f.endswith('.json')]
+        
+        # Filter files based on environment
+        if is_demo_mode():
+            json_files = [f for f in os.listdir(data_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')]
+        else:
+            json_files = [f for f in os.listdir(data_dir) 
+                         if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                         and not f.startswith(DEV_FILE_PREFIX)]
         
         if not json_files:
             return jsonify({'error': 'No environment data found. Please download environment first.'}), 404
@@ -2213,7 +2296,14 @@ def get_data(resource_type):
         if use_json:
             # Use latest JSON scan data
             environment_dir = app.config['ENVIRONMENT_FOLDER']
-            json_files = sorted([f for f in os.listdir(environment_dir) if f.startswith('azure_environment_') and f.endswith('.json')])
+            
+            # Filter files based on environment
+            if is_demo_mode():
+                json_files = sorted([f for f in os.listdir(environment_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')])
+            else:
+                json_files = sorted([f for f in os.listdir(environment_dir) 
+                                    if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                                    and not f.startswith(DEV_FILE_PREFIX)])
             
             if not json_files:
                 return jsonify({
@@ -2555,7 +2645,14 @@ def get_data(resource_type):
     if resource_type in RESOURCE_TYPES:
         # Use JSON data from Azure scan
         environment_dir = app.config['ENVIRONMENT_FOLDER']
-        json_files = sorted([f for f in os.listdir(environment_dir) if f.startswith('azure_environment_') and f.endswith('.json')])
+        
+        # Filter files based on environment
+        if is_demo_mode():
+            json_files = sorted([f for f in os.listdir(environment_dir) if f.startswith(DEV_FILE_PREFIX) and f.endswith('.json')])
+        else:
+            json_files = sorted([f for f in os.listdir(environment_dir) 
+                                if f.startswith(PROD_FILE_PREFIX) and f.endswith('.json') 
+                                and not f.startswith(DEV_FILE_PREFIX)])
         
         if not json_files:
             return jsonify({
