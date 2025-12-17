@@ -24,8 +24,6 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
 app.config['DATA_FOLDER'] = 'data/app-services'
 app.config['ENVIRONMENT_FOLDER'] = 'data/environment'
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size
-app.config['ALLOWED_EXTENSIONS'] = {'csv'}
 
 # Demo mode - controlled via UI toggle stored in session
 # Demo mode:
@@ -222,10 +220,6 @@ RESOURCE_TYPES = {
         'enabled': True
     }
 }
-
-def allowed_file(filename):
-    """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 def convert_to_serializable(obj):
     """Convert numpy/pandas types to Python native types for JSON serialization"""
@@ -1780,82 +1774,6 @@ def analyze(resource_type):
                          resource_type=resource_type,
                          resource_info=RESOURCE_TYPES[resource_type])
 
-@app.route('/upload/<resource_type>', methods=['POST'])
-def upload_file(resource_type):
-    """Handle single or multiple file upload"""
-    if resource_type not in RESOURCE_TYPES:
-        return jsonify({'error': 'Invalid resource type'}), 400
-    
-    resource_config = RESOURCE_TYPES[resource_type]
-    requires_multiple = resource_config.get('requires_multiple', False)
-    
-    if requires_multiple:
-        # Handle multiple files (some may be optional)
-        file_labels = resource_config.get('file_labels', [])
-        uploaded_files = []
-        
-        for i, label in enumerate(file_labels):
-            file_key = f'file{i}'
-            
-            # Check if file is optional (contains "Optional" in label)
-            is_optional = 'Optional' in label or 'optional' in label
-            
-            if file_key not in request.files:
-                if not is_optional:
-                    return jsonify({'error': f'Missing required file: {label}'}), 400
-                continue
-            
-            file = request.files[file_key]
-            
-            # Allow empty file if optional
-            if file.filename == '':
-                if not is_optional:
-                    return jsonify({'error': f'No file selected for: {label}'}), 400
-                continue
-            
-            if file and allowed_file(file.filename):
-                filename = secure_filename(file.filename)
-                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-                saved_filename = f"uploaded_file{i}_{timestamp}_{filename}"
-                filepath = os.path.join(app.config['DATA_FOLDER'], saved_filename)
-                file.save(filepath)
-                uploaded_files.append(saved_filename)
-            else:
-                return jsonify({'error': f'Invalid file type for: {label}'}), 400
-        
-        if not uploaded_files:
-            return jsonify({'error': 'At least one file must be uploaded'}), 400
-        
-        return jsonify({
-            'success': True,
-            'filenames': uploaded_files,
-            'message': f'Uploaded {len(uploaded_files)} file(s) successfully'
-        })
-    else:
-        # Handle single file (fallback, though all are now multi-file)
-        if 'file' not in request.files:
-            return jsonify({'error': 'No file provided'}), 400
-        
-        file = request.files['file']
-        
-        if file.filename == '':
-            return jsonify({'error': 'No file selected'}), 400
-        
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            saved_filename = f"uploaded_{timestamp}_{filename}"
-            filepath = os.path.join(app.config['DATA_FOLDER'], saved_filename)
-            file.save(filepath)
-            
-            return jsonify({
-                'success': True,
-                'filename': saved_filename,
-                'message': 'File uploaded successfully'
-            })
-        
-        return jsonify({'error': 'Invalid file type. Only CSV files are allowed'}), 400
-
 def analyze_generic_resource_type(resource_type, resources_data):
     """Generic analyzer for any resource type from JSON data with enhanced insights"""
     
@@ -2726,37 +2644,6 @@ def export_recommendations(resource_type):
     """Export recommendations as JSON"""
     # This would be implemented similar to get_data but only return recommendations
     return jsonify({'status': 'not_implemented'})
-
-@app.route('/delete-uploads/<resource_type>', methods=['POST'])
-def delete_uploads(resource_type):
-    """Delete all CSV files to reset the data"""
-    if resource_type not in RESOURCE_TYPES:
-        return jsonify({'error': 'Invalid resource type'}), 400
-    
-    try:
-        deleted_files = []
-        data_dir = app.config['DATA_FOLDER']
-        
-        # Delete ALL CSV files in the directory
-        for filename in os.listdir(data_dir):
-            if filename.endswith('.csv'):
-                filepath = os.path.join(data_dir, filename)
-                os.remove(filepath)
-                deleted_files.append(filename)
-        
-        if deleted_files:
-            message = f'Deleted {len(deleted_files)} file(s). Please upload new data to continue.'
-        else:
-            message = 'No data files found. Please upload new data.'
-        
-        return jsonify({
-            'success': True,
-            'deleted_count': len(deleted_files),
-            'deleted_files': deleted_files,
-            'message': message
-        })
-    except Exception as e:
-        return jsonify({'error': f'Failed to delete files: {str(e)}'}), 500
 
 
 if __name__ == '__main__':
