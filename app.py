@@ -2394,12 +2394,15 @@ def get_data(resource_type):
                     'message': f'Error analyzing data: {str(e)}'
                 }), 500
         
-        # No data found
+        # No JSON data found
         return jsonify({
             'error': 'no_data',
             'message': 'No environment scan data found. Please scan your Azure environment first.'
         }), 404
     
+    # For other resource types, use generic analyzer
+    try:
+        return get_generic_resource_data(resource_type)
     except Exception as e:
         print(f"Error in get_data: {str(e)}")
         import traceback
@@ -2410,27 +2413,8 @@ def get_data(resource_type):
         }), 500
 
 # Continue with other routes
-@app.route('/api/export/recommendations/<resource_type>')
-def export_recommendations(resource_type):
-    """Export recommendations as JSON"""
-    # This would be implemented similar to get_data but only return recommendations
-    return jsonify({'status': 'not_implemented'})
-
-
-if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
-                'os': os_chart_data
-            },
-            'tables': {
-                'tier_stats': convert_to_serializable(data['tier_stats']),
-                'location_stats': convert_to_serializable(data['location_stats']),
-                'resource_groups': convert_to_serializable(data['rg_stats'])
-            }
-        }
-        
-        return jsonify(response_data)
-    
-    # Generic handler for all other resource types
+def get_generic_resource_data(resource_type):
+    """Generic handler for all other resource types"""
     if resource_type in RESOURCE_TYPES:
         # Use JSON data from Azure scan
         environment_dir = app.config['ENVIRONMENT_FOLDER']
