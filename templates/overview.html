@@ -1090,14 +1090,52 @@
                 
             } catch (error) {
                 clearInterval(progressInterval);
-                errorAlert.style.display = 'block';
-                document.getElementById('errorMessage').textContent = error.message;
-                step1.classList.remove('active');
-                addProgressLog(`✗ Error: ${error.message}`, 'bi-x-circle-fill', 'danger');
                 
-                setTimeout(() => {
+                // Check if this is an authentication error
+                if (data && data.error === 'authentication_required') {
+                    // Hide the progress modal first
                     modal.hide();
-                }, 2000);
+                    
+                    // Show a user-friendly authentication alert
+                    setTimeout(() => {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Azure Authentication Required',
+                            html: `
+                                <div class="text-start">
+                                    <p class="mb-3"><strong>You need to authenticate with Azure CLI before scanning.</strong></p>
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-terminal me-2"></i>
+                                        <strong>Run this command in your terminal:</strong>
+                                        <pre class="mt-2 mb-0 bg-dark text-white p-2 rounded"><code>az login</code></pre>
+                                    </div>
+                                    <p class="text-muted small mb-0">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        After logging in, return here and click "Scan Environment" again.
+                                    </p>
+                                </div>
+                            `,
+                            confirmButtonText: 'Got it!',
+                            confirmButtonColor: '#000',
+                            width: '600px',
+                            customClass: {
+                                popup: 'border-3',
+                                confirmButton: 'btn btn-dark'
+                            }
+                        });
+                    }, 300);
+                } else {
+                    // Generic error handling for other errors
+                    errorAlert.style.display = 'block';
+                    document.getElementById('errorMessage').textContent = error.message;
+                    addProgressLog(`✗ Error: ${error.message}`, 'bi-x-circle-fill', 'danger');
+                    
+                    setTimeout(() => {
+                        modal.hide();
+                    }, 2000);
+                }
+                
+                step1.classList.remove('active');
             } finally {
                 downloadBtn.disabled = false;
             }
