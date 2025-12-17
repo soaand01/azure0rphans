@@ -1399,7 +1399,7 @@ def api_download_environment():
         if demo_mode:
             # Generate demo data instead of real Azure scan
             import random
-            from demo_data_generator import generate_wasteful_environment
+            from scripts.demo_data_generator import generate_wasteful_environment
             # Randomize resource count between 800-1500 for variety
             target_resources = random.randint(800, 1500)
             env_data = generate_wasteful_environment(target_resources=target_resources)
