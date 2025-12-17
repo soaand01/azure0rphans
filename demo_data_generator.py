@@ -1,5 +1,5 @@
 """
-Demo Data Generator for Azure CostPlan
+Demo Data Generator for Azure 0rphans
 Generates realistic fake Azure resource data matching production structure EXACTLY
 """
 
