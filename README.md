@@ -24,12 +24,17 @@ Zero waste, zero orphans - Identify and eliminate orphaned Azure resources. ♻�
    pip install -r requirements.txt
    ```
 
-2. **Run the application** ▶️
+2. **Authenticate with Azure CLI** 🔑
+   ```bash
+   az login --tenant "ID-HERE" --use-device-code
+   ```
+
+3. **Run the application** ▶️
    ```bash
    python3 app.py
    ```
 
-3. **Access at** `http://localhost:5000` 🌐
+4. **Access at** `http://localhost:5000` 🌐
 
 ## 📋 Usage
 
