@@ -1798,6 +1798,21 @@ def analyze(resource_type):
                          resource_type=resource_type,
                          resource_info=RESOURCE_TYPES[resource_type])
 
+def format_resource_display_name(resource, resource_type):
+    """
+    Format resource display name with additional context for better clarity.
+    For subnets, includes VNet name. For other resources, returns the name.
+    """
+    name = resource.get('name', 'Unknown')
+    
+    # Special handling for subnets to include VNet context
+    if resource_type == 'subnets':
+        vnet_name = resource.get('vnet_name')
+        if vnet_name:
+            return f"{vnet_name}/{name}"
+    
+    return name
+
 def analyze_generic_resource_type(resource_type, resources_data):
     """Generic analyzer for any resource type from JSON data with enhanced insights"""
     
@@ -1979,7 +1994,7 @@ def analyze_generic_resource_type(resource_type, resources_data):
         ],
         'orphaned_resources': [
             {
-                'name': r.get('name', 'Unknown'),
+                'name': format_resource_display_name(r, resource_type),
                 'resource_group': r.get('resource_group', 'Unknown'),
                 'location': r.get('location', 'Unknown'),
                 'id': r.get('id', '')

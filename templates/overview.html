@@ -994,45 +994,6 @@
             const step1 = document.getElementById('step1');
             const step2 = document.getElementById('step2');
             
-            // Check if in production mode and show warning immediately
-            if (!window.isDemoMode) {
-                Swal.fire({
-                    icon: 'info',
-                    title: 'Production Scan Not Available',
-                    html: `
-                        <div class="text-start">
-                            <p class="mb-3"><strong>This is a demo environment and cannot connect to Azure.</strong></p>
-                            <div class="alert alert-warning">
-                                <i class="bi bi-exclamation-triangle me-2"></i>
-                                <strong>To scan your own Azure environment:</strong>
-                                <ol class="mt-2 mb-0">
-                                    <li>Fork or clone the repository</li>
-                                    <li>Run <code>az login</code> locally</li>
-                                    <li>Start the app on your machine</li>
-                                </ol>
-                            </div>
-                            <div class="text-center mt-3">
-                                <a href="https://github.com/soaand01/azure0rphans" target="_blank" class="btn btn-dark btn-sm">
-                                    <i class="bi bi-github me-2"></i>View on GitHub
-                                </a>
-                            </div>
-                            <p class="text-muted small mt-3 mb-0">
-                                <i class="bi bi-lightbulb me-1"></i>
-                                <strong>Tip:</strong> Switch to Demo Mode (toggle at top right) to explore with sample data!
-                            </p>
-                        </div>
-                    `,
-                    confirmButtonText: 'Got it!',
-                    confirmButtonColor: '#000',
-                    width: '600px',
-                    customClass: {
-                        popup: 'border-3',
-                        confirmButton: 'btn btn-dark'
-                    }
-                });
-                return; // Stop execution
-            }
-            
             // Show progress modal
             const modal = showProgressModal();
             const progressLog = document.getElementById('progressLog');
@@ -1085,8 +1046,52 @@
                 
                 clearInterval(progressInterval);
                 
+                // Check for authentication error
+                if (data.error === 'authentication_required') {
+                    // Hide the progress modal first
+                    modal.hide();
+                    
+                    // Show a user-friendly authentication alert
+                    setTimeout(() => {
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Azure Authentication Required',
+                            html: `
+                                <div class="text-start">
+                                    <p class="mb-3"><strong>You need to authenticate with Azure CLI before scanning.</strong></p>
+                                    <div class="alert alert-info">
+                                        <i class="bi bi-terminal me-2"></i>
+                                        <strong>Run this command in your terminal:</strong>
+                                        <pre class="mt-2 mb-0 bg-dark text-white p-2 rounded"><code>az login</code></pre>
+                                    </div>
+                                    <p class="text-muted small mb-3">
+                                        <i class="bi bi-info-circle me-1"></i>
+                                        After logging in, return here and click "Start Scan" again.
+                                    </p>
+                                    <p class="text-muted small mb-0">
+                                        <i class="bi bi-lightbulb me-1"></i>
+                                        <strong>Tip:</strong> Switch to Demo Mode (toggle at top right) to explore with sample data!
+                                    </p>
+                                </div>
+                            `,
+                            confirmButtonText: 'Got it!',
+                            confirmButtonColor: '#000',
+                            width: '600px',
+                            customClass: {
+                                popup: 'border-3',
+                                confirmButton: 'btn btn-dark'
+                            }
+                        });
+                    }, 300);
+                    
+                    // Reset button states
+                    downloadBtn.disabled = false;
+                    step1.classList.remove('active');
+                    return;
+                }
+                
                 if (data.error) {
-                    throw new Error(data.error);
+                    throw new Error(data.message || data.error);
                 }
                 
                 // Complete any remaining steps quickly
@@ -1138,49 +1143,14 @@
             } catch (error) {
                 clearInterval(progressInterval);
                 
-                // Check if this is an authentication error
-                if (data && data.error === 'authentication_required') {
-                    // Hide the progress modal first
+                // Generic error handling
+                errorAlert.style.display = 'block';
+                document.getElementById('errorMessage').textContent = error.message;
+                addProgressLog(`✗ Error: ${error.message}`, 'bi-x-circle-fill', 'danger');
+                
+                setTimeout(() => {
                     modal.hide();
-                    
-                    // Show a user-friendly authentication alert
-                    setTimeout(() => {
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Azure Authentication Required',
-                            html: `
-                                <div class="text-start">
-                                    <p class="mb-3"><strong>You need to authenticate with Azure CLI before scanning.</strong></p>
-                                    <div class="alert alert-info">
-                                        <i class="bi bi-terminal me-2"></i>
-                                        <strong>Run this command in your terminal:</strong>
-                                        <pre class="mt-2 mb-0 bg-dark text-white p-2 rounded"><code>az login</code></pre>
-                                    </div>
-                                    <p class="text-muted small mb-0">
-                                        <i class="bi bi-info-circle me-1"></i>
-                                        After logging in, return here and click "Scan Environment" again.
-                                    </p>
-                                </div>
-                            `,
-                            confirmButtonText: 'Got it!',
-                            confirmButtonColor: '#000',
-                            width: '600px',
-                            customClass: {
-                                popup: 'border-3',
-                                confirmButton: 'btn btn-dark'
-                            }
-                        });
-                    }, 300);
-                } else {
-                    // Generic error handling for other errors
-                    errorAlert.style.display = 'block';
-                    document.getElementById('errorMessage').textContent = error.message;
-                    addProgressLog(`✗ Error: ${error.message}`, 'bi-x-circle-fill', 'danger');
-                    
-                    setTimeout(() => {
-                        modal.hide();
-                    }, 2000);
-                }
+                }, 2000);
                 
                 step1.classList.remove('active');
             } finally {
