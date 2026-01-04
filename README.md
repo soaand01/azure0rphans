@@ -17,8 +17,10 @@ Zero waste, zero orphans - Identify and eliminate orphaned Azure resources. ♻�
 
 ## 🚀 Quick Start
 
-1. **Install dependencies** 📦
+1. **Set up virtual environment** 📦
    ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
    pip install -r requirements.txt
    ```
 
@@ -37,7 +39,7 @@ To scan your actual Azure subscription:
 
 1. **Authenticate with Azure CLI** 🔑
    ```bash
-   az login
+   az login --tenant "ID-HERE" --use-device-code
    ```
 
 2. **Select your subscription** 📝
