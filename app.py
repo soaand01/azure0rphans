@@ -1028,6 +1028,7 @@ def download_azure_environment():
                         'name': subnet.name,
                         'vnet_name': vnet.name,
                         'resource_group': vnet.id.split('/')[4],
+                        'location': vnet.location,  # Subnets inherit location from parent VNet
                         'address_prefix': subnet.address_prefix,
                         'is_orphaned': not has_devices and not has_delegation
                     })

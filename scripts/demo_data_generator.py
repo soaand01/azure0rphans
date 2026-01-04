@@ -300,12 +300,22 @@ def generate_wasteful_environment(target_resources=1000):
     data['resources']['virtual_networks'] = virtual_networks
     
     # === SUBNETS ===
+    # Note: Subnets inherit location from their parent VNet, so we should use consistent locations
     subnets = []
     orphan_rate_subnets = random.uniform(0.15, 0.30)  # 15-30% orphaned
+    
+    # Create a mapping of vnets to locations for consistency
+    vnet_locations = {}
+    
     for i in range(num_subnets):
-        location = random.choice(AZURE_REGIONS)
         rg = random.choice(RESOURCE_GROUPS)
         vnet_name = f"vnet-{random.choice(PREFIXES)}-{random.randint(1, 20):03d}"
+        
+        # Ensure subnet uses the same location as its parent VNet
+        if vnet_name not in vnet_locations:
+            vnet_locations[vnet_name] = random.choice(AZURE_REGIONS)
+        location = vnet_locations[vnet_name]
+        
         name = f"subnet-{random.choice(['default', 'frontend', 'backend', 'data', 'app'])}-{i:03d}"
         
         # Subnet is orphaned if it has no connected devices (NICs, private endpoints) and no delegations
@@ -316,7 +326,7 @@ def generate_wasteful_environment(target_resources=1000):
             'name': name,
             'vnet_name': vnet_name,
             'resource_group': rg,
-            'location': location,
+            'location': location,  # Inherited from parent VNet
             'address_prefix': f"10.{random.randint(0, 255)}.{random.randint(0, 255)}.0/24",
             'available_ips': random.randint(50, 250),
             'is_orphaned': is_orphaned
