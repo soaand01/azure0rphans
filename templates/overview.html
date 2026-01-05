@@ -1051,6 +1051,10 @@
                     // Hide the progress modal first
                     modal.hide();
                     
+                    // Reset button states and cancel scan immediately
+                    downloadBtn.disabled = false;
+                    step1.classList.remove('active');
+                    
                     // Show a user-friendly authentication alert
                     setTimeout(() => {
                         Swal.fire({
@@ -1072,6 +1076,10 @@
                                         <i class="bi bi-lightbulb me-1"></i>
                                         <strong>Tip:</strong> Switch to Demo Mode (toggle at top right) to explore with sample data!
                                     </p>
+                                    <p class="mt-3 text-danger small">
+                                        <i class="bi bi-x-circle me-1"></i>
+                                        <strong>Scan Canceled:</strong> Production scan requires Azure authentication.
+                                    </p>
                                 </div>
                             `,
                             confirmButtonText: 'Got it!',
@@ -1081,12 +1089,15 @@
                                 popup: 'border-3',
                                 confirmButton: 'btn btn-dark'
                             }
+                        }).then(() => {
+                            // Explicitly ensure scan is fully canceled after user acknowledges
+                            downloadBtn.disabled = false;
+                            step1.classList.remove('active');
+                            analyzeBtn.disabled = true;
                         });
                     }, 300);
                     
-                    // Reset button states
-                    downloadBtn.disabled = false;
-                    step1.classList.remove('active');
+                    // Immediately return to prevent any further execution
                     return;
                 }
                 
